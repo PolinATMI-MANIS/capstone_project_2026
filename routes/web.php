@@ -1,18 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LoginController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+// Halaman Login
+Route::get('/login', function () {
+    return view('login');
+})->name('login');
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Proses Login yang mengarah ke Controller
+Route::post('/proses-login', [LoginController::class, 'authenticate']);
+
+// Halaman Dashboard (Hanya bisa diakses kalau sudah login)
+Route::get('/dashboard', function () {
+    return "<h1>Selamat Datang di Dashboard Admin!</h1>";
+})->middleware('auth');
+
+Route::post('/logout', [LoginController::class, 'logout']);
