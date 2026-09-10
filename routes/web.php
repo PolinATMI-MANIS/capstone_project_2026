@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\DashboardController;
 
 // Halaman Login
 Route::get('/login', function () {
@@ -13,7 +14,9 @@ Route::post('/proses-login', [LoginController::class, 'authenticate']);
 
 // Halaman Dashboard (Hanya bisa diakses kalau sudah login)
 Route::get('/dashboard', function () {
-    return "<h1>Selamat Datang di Dashboard Admin!</h1>";
+    return view('dashboard');
 })->middleware('auth');
 
 Route::post('/logout', [LoginController::class, 'logout']);
+
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');

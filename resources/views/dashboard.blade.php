@@ -1,63 +1,122 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Manajemen Industri ATMI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
-</head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
+@extends('layouts.app')
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-[#0A192F] text-white flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b border-gray-700">
-            <h1 class="text-lg font-bold tracking-widest text-teal-400">MI - ATMI</h1>
-        </div>
-        <nav class="flex-1 px-4 py-6 space-y-2">
-            <a href="/dashboard" class="flex items-center px-4 py-3 bg-teal-600/20 text-teal-400 rounded-lg">
-                <span class="font-medium">Dashboard</span>
-            </a>
-            <a href="#" class="flex items-center px-4 py-3 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition">
-                <span class="font-medium">Data Mahasiswa</span>
-            </a>
-        </nav>
-        <div class="p-4 border-t border-gray-700">
-            <!-- Form Logout -->
-            <form action="/logout" method="POST">
-                @csrf
-                <button type="submit" class="w-full bg-red-500/10 text-red-400 font-medium py-2 rounded-lg hover:bg-red-500/20 transition">
-                    Keluar Sistem
-                </button>
-            </form>
-        </div>
-    </aside>
+@section('content')
+<!-- Header Dashboard & Profile Badge -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold m-0 text-dark">Dashboard Overview</h3>
+        <p class="text-muted small m-0 mt-1">Rekapan data operasional dari seluruh modul Capstone Industrial System.</p>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col">
-        <!-- Navbar Atas -->
-        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8">
-            <h2 class="text-xl font-semibold text-gray-800">Sistem Informasi Akademik</h2>
-            <div class="flex items-center gap-3">
-                <div class="text-sm text-right">
-                    <p class="font-bold text-gray-700">{{ auth()->user()->name }}</p>
-                    <p class="text-gray-500">{{ auth()->user()->email }}</p>
+    <!-- Badge Profil Pengguna (Kanan Atas) -->
+    <div class="d-flex align-items-center bg-white px-3 py-2 rounded-3 shadow-sm border">
+        <div class="bg-warning bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center text-warning fw-bold me-3" style="width: 40px; height: 40px;">
+            <i class="fa-solid fa-user-gear"></i>
+        </div>
+        <div>
+            <h6 class="fw-bold m-0 text-dark" style="font-size: 0.88rem;">
+                {{ Auth::user()->name ?? 'Admin Capstone' }}
+            </h6>
+            <span class="badge bg-danger text-uppercase" style="font-size: 0.65rem;">
+                {{ Auth::user()->role ?? 'Super Admin' }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Grid Cards Ringkasan Modul (Clickable) -->
+<div class="row g-4">
+    
+    <!-- Card Inventory -->
+    <div class="col-md-4">
+        <a href="/inventory" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">Inventory</span>
+                    <div class="bg-primary bg-opacity-10 p-2 rounded text-primary">
+                        <i class="fa-solid fa-boxes-stacked fs-5"></i>
+                    </div>
                 </div>
-                <div class="h-10 w-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {{ substr(auth()->user()->name, 0, 1) }}
+                <h3 class="fw-bold m-0 text-dark">{{ $totalInventory ?? 0 }}</h3>
+                <p class="text-muted small m-0 mt-1">Total Item Stok Aktif</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Card Production -->
+    <div class="col-md-4">
+        <a href="/production" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">Production</span>
+                    <div class="bg-success bg-opacity-10 p-2 rounded text-success">
+                        <i class="fa-solid fa-industry fs-5"></i>
+                    </div>
                 </div>
+                <h3 class="fw-bold m-0 text-dark">{{ $totalProduction ?? 0 }}</h3>
+                <p class="text-muted small m-0 mt-1">Batch Produksi Berjalan</p>
             </div>
-        </header>
+        </a>
+    </div>
 
-        <!-- Area Konten Utama -->
-        <div class="p-8 flex-1 overflow-y-auto">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Selamat Datang, {{ auth()->user()->name }}! 👋</h3>
-                <p class="text-gray-600">Ini adalah halaman dashboard utama. Di sini kamu dan kelompokmu bisa mulai membuat tabel CRUD (Create, Read, Update, Delete) untuk mengelola data kampus.</p>
+    <!-- Card Resources -->
+    <div class="col-md-4">
+        <a href="/resources" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">Resources</span>
+                    <div class="bg-info bg-opacity-10 p-2 rounded text-info">
+                        <i class="fa-solid fa-users-gear fs-5"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold m-0 text-dark">{{ $totalResources ?? 0 }}</h3>
+                <p class="text-muted small m-0 mt-1">Man Power Tersedia</p>
             </div>
-        </div>
-    </main>
+        </a>
+    </div>
 
-</body>
-</html>
+    <!-- Card Order Here (PO & DO) -->
+    <div class="col-md-4">
+        <a href="/purchase" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">Order Here !</span>
+                    <div class="bg-warning bg-opacity-10 p-2 rounded text-warning">
+                        <i class="fa-solid fa-cart-shopping fs-5"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold m-0 text-dark">{{ $totalOrders ?? 0 }}</h3>
+                <p class="text-muted small m-0 mt-1">Dokumen PO & DO Pending</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Card RnD -->
+    <div class="col-md-4">
+        <a href="/rnd" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">RnD</span>
+                    <div class="bg-danger bg-opacity-10 p-2 rounded text-danger">
+                        <i class="fa-solid fa-flask fs-5"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold m-0 text-dark">{{ $totalRnd ?? 0 }}</h3>
+                <p class="text-muted small m-0 mt-1">Proyek Riset Aktif</p>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+<!-- CSS Tambahan Efek Hover Kartu -->
+<style>
+    .card-hover {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important;
+    }
+</style>
+@endsection
