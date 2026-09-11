@@ -3,20 +3,53 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryController;
 
-// Halaman Login
-Route::get('/login', function () {
-    return view('login');
-})->name('login');
+// Rute untuk Tamu / Belum Login
+Route::middleware('guest')->group(function () {
+    Route::get('/login', function () {
+        return view('login'); 
+    })->name('login');
 
-// Proses Login yang mengarah ke Controller
-Route::post('/proses-login', [LoginController::class, 'authenticate']);
+    Route::post('/proses-login', [LoginController::class, 'authenticate']);
+});
 
-// Halaman Dashboard (Hanya bisa diakses kalau sudah login)
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth');
+// Rute Wajib Login (Semua Role: super_admin, admin, user)
+Route::middleware('auth')->group(function () {
+    
+    Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::post('/logout', [LoginController::class, 'logout']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval']);
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth');
+    // --- RUTE DUMMY SEMENTARA (Bisa diakses semua role) ---
+    Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
+    Route::get('/rnd', function () { return "Halaman RnD (Dalam Pengembangan)"; });
+    
+    // Karena tadi kamu bilang Purchase sudah bisa, arahkan ke view aslinya:
+    Route::get('/purchase', function () { return "Halaman Order Here! (Dalam Pengembangan)"; });
+    // (Ganti jadi "Dalam Pengembangan" jika view purchase.blade.php ternyata belum ada)
+
+    // --- RUTE KHUSUS (Cuma bisa diakses Super Admin & Admin) ---
+    Route::middleware('role:super_admin,admin')->group(function () {
+        
+        // Rute dummy sementara karena filenya belum di-merge
+        Route::get('/inventory', function () { return "Halaman Inventory (Dalam Pengembangan)"; });
+        Route::get('/production', function () { return "Halaman Production (Dalam Pengembangan)"; });
+
+        /* 
+         * CATATAN: 
+         * Nanti kalau file dari tim kamu sudah di-merge, hapus 2 baris dummy di atas, 
+         * lalu pakai kode aslinya yang ini:
+         * 
+         * Route::get('/inventory', [InventoryController::class, 'index']);
+         * Route::get('/production', function () { return view('production'); });
+         */
+    });
+
+    // Rute KHUSUS Super Admin Saja
+    Route::middleware('role:super_admin')->group(function () {
+        // Rute khusus super admin di sini
+    });
+
+});

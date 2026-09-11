@@ -145,6 +145,7 @@
             color: #fff;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -175,14 +176,19 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
-        <!-- Tombol Logout -->
-        <div style="position: absolute; bottom: 30px; width: 100%; padding: 0 25px;">
-            <form action="/logout" method="POST" class="m-0">
-                @csrf
-                <button type="submit" class="btn text-danger w-100 d-flex align-items-center justify-content-start" style="background-color: #fff1f2; border: 1px solid #ffe4e6; border-radius: 8px; font-size: 0.9rem; font-weight: 600; padding: 10px 15px; transition: 0.3s;">
-                    <i class="fa-solid fa-right-from-bracket me-3"></i> Logout
-                </button>
-            </form>
+        <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
+            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fa-solid fa-headset text-danger me-2"></i>
+                    <span class="fw-bold text-dark small">Capstone Support</span>
+                </div>
+                <p class="text-muted m-0" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
+                </p>
+                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
+                </p>
+            </div>
         </div>
     </div>
 
