@@ -85,48 +85,6 @@
             margin-left: 260px;
             padding: 40px;
         }
-
-        .sub-navbar {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 6px;
-            border-radius: 12px;
-            display: inline-flex;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-
-        .sub-nav-btn {
-            color: #64748b;
-            text-decoration: none;
-            padding: 8px 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-
-        .sub-nav-btn.active, .sub-nav-btn:hover {
-            background-color: #ff6600;
-            color: #ffffff;
-        }
-
-        .btn-machine {
-            background-color: #ff6600;
-            color: #fff;
-            font-weight: 600;
-            border-radius: 8px;
-            padding: 10px 22px;
-            font-size: 0.85rem;
-            border: none;
-            transition: 0.3s;
-            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
-        }
-        .btn-machine:hover {
-            background-color: #e55c00;
-            transform: translateY(-2px);
-            color: #fff;
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -150,10 +108,15 @@
             <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </a>
         
-        <!-- Menu Resources Utama -->
+        <!-- Menu Resources Utama dengan indikator jumlah approval pending -->
+        @php
+            $pendingApprovalCount = class_exists('\App\Models\ApprovalRequest') ? \App\Models\ApprovalRequest::count() : 0;
+        @endphp
         <a href="{{ route('man-power.index') }}" class="{{ Request::is('man-power*') || Request::is('machine-power*') || Request::is('waiting-resources*') ? 'active' : '' }} d-flex justify-content-between align-items-center">
             <div><i class="fa-solid fa-users-gear"></i> Resources</div>
-            <span id="sidebarNotificationBadge" class="badge bg-danger rounded-pill" style="display: none; font-size: 0.65rem;">0</span>
+            @if($pendingApprovalCount > 0 && auth()->check() && auth()->user()->role === 'super_admin')
+                <span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">{{ $pendingApprovalCount }}</span>
+            @endif
         </a>
 
         <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
@@ -163,24 +126,41 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
+        <!-- Info Profile User yang Sedang Login & Tombol Logout -->
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
-            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fa-solid fa-headset text-danger me-2"></i>
-                    <span class="fw-bold text-dark small">Capstone Support</span>
-                </div>
-                <p class="text-muted m-0" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
-                </p>
-                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
-                </p>
+            <div class="p-3 rounded-3 bg-white shadow-sm border">
+                @auth
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark small text-truncate" style="max-width: 130px;">{{ auth()->user()->name }}</span>
+                        <span class="badge bg-dark font-monospace" style="font-size: 0.55rem;">{{ auth()->user()->role }}</span>
+                    </div>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                        </button>
+                    </form>
+                @endauth
             </div>
         </div>
 
     </div>
 
     <div class="main-content">
+        <!-- Notifikasi Flash Message Global -->
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         @yield('content')
     </div>
 

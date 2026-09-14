@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ManPower;
 use App\Models\MachinePower;
+use App\Models\ApprovalRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,7 +18,6 @@ class ManPowerController extends Controller
 
     public function create()
     {
-        // User dan Admin bisa akses form input, nanti sistem approval yang menentukan
         return view('man-power.create');
     }
 
@@ -36,10 +36,22 @@ class ManPowerController extends Controller
             $data['foto'] = $request->file('foto')->store('man-power-photos', 'public');
         }
 
-        // Jika yang membuat adalah 'user', arahkan ke status pending/approval jika diperlukan
-        // Sesuai flowchart: CUD oleh user/admin memicu notifikasi approval
-        ManPower::create($data);
+        // JIKA USER: Masuk ke Approval Request (Menunggu Admin/Super Admin)
+        if (auth()->user()->role === 'user') {
+            ApprovalRequest::create([
+                'user_id'     => auth()->id(),
+                'target_type' => 'ManPower',
+                'target_id'   => 0, // Belum ada ID karena baru mau dibuat
+                'target_name' => $data['nama'],
+                'action_type' => 'create',
+                'payload'     => json_encode($data),
+            ]);
 
+            return redirect()->route('man-power.index')->with('success', 'Pengajuan penambahan Man Power telah dikirim ke Admin/Super Admin.');
+        }
+
+        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
+        ManPower::create($data);
         return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil ditambahkan.');
     }
 
@@ -60,61 +72,82 @@ class ManPowerController extends Controller
         $data = $request->except(['_token', '_method']);
 
         if ($request->hasFile('foto')) {
-            if ($manPower->foto && Storage::disk('public')->exists($manPower->foto)) {
-                Storage::disk('public')->delete($manPower->foto);
-            }
             $data['foto'] = $request->file('foto')->store('man-power-photos', 'public');
         }
 
-        $manPower->update($data);
+        // JIKA USER: Masuk ke Approval Request untuk Update
+        if (auth()->user()->role === 'user') {
+            ApprovalRequest::create([
+                'user_id'     => auth()->id(),
+                'target_type' => 'ManPower',
+                'target_id'   => $manPower->id,
+                'target_name' => $data['nama'],
+                'action_type' => 'update',
+                'payload'     => json_encode($data),
+            ]);
 
-        return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil diperbarui.');
-    }
-
-    public function destroy(ManPower $manPower)
-    {
-        // ATURAN FLOWCHART: Hanya Super Admin yang bisa langsung menghapus data
-        if (auth()->user()->role !== 'super_admin') {
-            return redirect()->back()->with('error', 'Aksi hapus ditolak. Fitur Delete untuk Admin/User memerlukan approval dari Super Admin.');
+            return redirect()->route('man-power.index')->with('success', 'Pengajuan pembaruan data Man Power telah dikirim ke Admin/Super Admin.');
         }
 
-        MachinePower::where('man_power_id', $manPower->id)->update([
-            'status' => 'Standby',
-            'man_power_id' => null
-        ]);
-
-        if ($manPower->foto && Storage::disk('public')->exists($manPower->foto)) {
+        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
+        if ($request->hasFile('foto') && $manPower->foto && Storage::disk('public')->exists($manPower->foto)) {
             Storage::disk('public')->delete($manPower->foto);
         }
 
-        $manPower->delete();
-
-        return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil dihapus secara permanen.');
+        $manPower->update($data);
+        return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil diperbarui.');
     }
 
-    public function updateStatus(Request $request, $id)
+    public function destroy(Request $request, ManPower $manPower)
     {
-        $request->validate([
-            'status' => 'required|in:Idle,Kerja,Cuti',
-        ]);
-
-        $manPower = ManPower::findOrFail($id);
-        $newStatus = $request->status;
-
-        $manPower->update([
-            'status' => $newStatus
-        ]);
-
-        if ($newStatus === 'Idle') {
+        // SUPER ADMIN: Hapus Permanen Langsung
+        if (auth()->user()->role === 'super_admin') {
             MachinePower::where('man_power_id', $manPower->id)->update([
                 'status' => 'Standby',
                 'man_power_id' => null
             ]);
+            if ($manPower->foto && Storage::disk('public')->exists($manPower->foto)) {
+                Storage::disk('public')->delete($manPower->foto);
+            }
+            $manPower->delete();
+            $msg = 'Data berhasil dihapus permanen.';
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
+            return redirect()->route('man-power.index')->with('success', $msg);
         }
 
-        return response()->json([
-            'success' => true, 
-            'message' => 'Status pekerja berhasil diperbarui ke ' . $newStatus
+        // ADMIN / USER: Masuk ke Approval Request untuk Delete
+        ApprovalRequest::create([
+            'user_id'     => auth()->id(),
+            'target_type' => 'ManPower',
+            'target_id'   => $manPower->id,
+            'target_name' => $manPower->nama,
+            'action_type' => 'delete',
         ]);
+        
+        $msg = 'Permintaan hapus telah dikirim ke Super Admin.';
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+        return redirect()->route('man-power.index')->with('success', $msg);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate(['status' => 'required|in:Idle,Kerja,Cuti']);
+        $manPower = ManPower::findOrFail($id);
+        
+        if (auth()->user()->role === 'user') {
+            return response()->json(['success' => false, 'message' => 'User tidak memiliki izin ubah status langsung.'], 403);
+        }
+
+        $manPower->update(['status' => $request->status]);
+        if ($request->status === 'Idle') {
+            MachinePower::where('man_power_id', $manPower->id)->update(['status' => 'Standby', 'man_power_id' => null]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Status diperbarui.']);
     }
 }

@@ -60,8 +60,8 @@ Route::middleware('auth')->group(function () {
     
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
     Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
     Route::get('/rnd', function () { return "Halaman RnD (Dalam Pengembangan)"; });

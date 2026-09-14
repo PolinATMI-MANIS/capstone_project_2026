@@ -21,6 +21,7 @@
             <h2 class="fw-bold text-dark mb-0" style="font-size: 1.6rem;">Man Power Allocation Dashboard</h2>
         </div>
 
+        {{-- Tombol Add dimunculkan untuk SEMUA role (User akan masuk approval) --}}
         <a href="{{ route('man-power.create') }}" class="btn fw-bold text-white px-3 py-2 shadow-sm" style="background-color: #ff6600; border: none; border-radius: 8px;">
             <i class="fa-solid fa-plus me-1"></i> Add Man Power
         </a>
@@ -43,6 +44,8 @@
                             
                             <div style="position: relative; width: 100%; margin-top: 25px;">
                                 
+                                {{-- Tombol Drag Me (Hanya Admin & Super Admin) --}}
+                                @if(auth()->check() && auth()->user()->role !== 'user')
                                 <div draggable="true" 
                                      ondragstart="handleDragStart(event)" 
                                      data-id="{{ $item->id }}"
@@ -52,6 +55,7 @@
                                      style="top: -15px; z-index: 10; font-size: 0.65rem; cursor: grab; background-color: #ff6600; border: 2px solid #ffffff; user-select: none;">
                                     <i class="fa-solid fa-grip-lines"></i> DRAG ME
                                 </div>
+                                @endif
 
                                 <div style="position: relative; width: 100%; height: 330px; transition: transform 0.6s; transform-style: preserve-3d;" 
                                      class="card-flipper shadow-sm" 
@@ -120,12 +124,27 @@
                                         </div>
 
                                         <div class="d-flex justify-content-between align-items-center pt-2 border-top border-white border-opacity-25">
-                                            <a href="{{ route('man-power.edit', $item->id) }}" class="btn btn-sm btn-light text-primary fw-semibold px-2 py-1 shadow-sm" style="font-size: 0.65rem;">Edit</a>
-                                            <form action="{{ route('man-power.destroy', $item->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-light text-danger fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;" onclick="return confirm('Hapus data?')">Delete</button>
-                                            </form>
+                                            {{-- Tombol Edit dimunculkan untuk SEMUA role (User akan masuk approval update) --}}
+                                            @if(auth()->check())
+                                                <a href="{{ route('man-power.edit', $item->id) }}" class="btn btn-sm btn-light text-primary fw-semibold px-2 py-1 shadow-sm" style="font-size: 0.65rem;">Edit</a>
+                                            @else
+                                                <span></span>
+                                            @endif
+
+                                            {{-- Tombol Delete (Super Admin = Hapus langsung, Admin = Req Delete, User = Tidak ada) --}}
+                                            @if(auth()->check() && auth()->user()->role === 'super_admin')
+                                                <form action="{{ route('man-power.destroy', $item->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-light text-danger fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;" onclick="return confirm('Hapus data secara permanen?')">Delete</button>
+                                                </form>
+                                            @elseif(auth()->check() && auth()->user()->role === 'admin')
+                                                <form action="{{ route('man-power.destroy', $item->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-light text-warning fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;" onclick="return confirm('Kirim permintaan hapus ke Super Admin?')">Req Delete</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -140,7 +159,7 @@
             </div>
         </div>
 
-        <!-- KOLOM KANAN: PANEL KONTROL (Sama persis dengan Machine Power) -->
+        <!-- KOLOM KANAN: PANEL KONTROL -->
         <div class="col-lg-4 ps-lg-4 mt-4 mt-lg-0">
             <div class="sticky-top d-flex flex-column gap-4" style="top: 20px;">
                 
@@ -201,9 +220,11 @@
                                         <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $item->nama }}</h6>
                                         <span class="text-muted" style="font-size: 0.65rem;">{{ $item->posisi }}</span>
                                     </div>
+                                    @if(auth()->check() && auth()->user()->role !== 'user')
                                     <button onclick="returnWorker('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Kembalikan ke Idle" style="font-size: 0.6rem; background-color: #0b192c;">
                                         <i class="fa-solid fa-rotate-left"></i> Return
                                     </button>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -240,9 +261,11 @@
                                         <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $item->nama }}</h6>
                                         <span class="text-muted" style="font-size: 0.65rem;">{{ $item->posisi }}</span>
                                     </div>
+                                    @if(auth()->check() && auth()->user()->role !== 'user')
                                     <button onclick="returnWorker('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Kembalikan ke Idle" style="font-size: 0.6rem; background-color: #0b192c;">
                                         <i class="fa-solid fa-rotate-left"></i> Return
                                     </button>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -253,7 +276,8 @@
                     </div>
                 </div>
 
-                <!-- CARD 4: PINTU DELETE -->
+                <!-- CARD 4: PINTU DELETE (Disembunyikan untuk User) -->
+                @if(auth()->check() && auth()->user()->role !== 'user')
                 <div class="px-3 py-3 rounded-pill shadow-sm border border-2 border-danger text-center d-flex align-items-center justify-content-center gap-2" 
                      id="deleteZone"
                      ondragover="handleDeleteDragOver(event)"
@@ -263,8 +287,11 @@
                     <div class="text-danger d-flex align-items-center">
                         <i class="fa-solid fa-door-open fs-5"></i>
                     </div>
-                    <span class="fw-bold text-danger text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px;">DROP DI SINI UNTUK HAPUS PEKERJA</span>
+                    <span class="fw-bold text-danger text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px;">
+                        {{ auth()->user()->role === 'super_admin' ? 'DROP DI SINI UNTUK HAPUS' : 'DROP DI SINI UNTUK REQ HAPUS' }}
+                    </span>
                 </div>
+                @endif
 
             </div>
         </div>
@@ -395,20 +422,23 @@
         if (!rawData) return;
         let worker = JSON.parse(rawData);
 
-        if (confirm(`Yakin ingin menghapus data pekerja ${worker.nama}?`)) {
+        if (confirm(`Yakin memproses hapus data pekerja ${worker.nama}?`)) {
             fetch(`/man-power/${worker.id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({ _method: 'DELETE' })
             })
-            .then(response => {
-                if (response.ok) {
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
                     location.reload();
                 } else {
-                    alert('Gagal menghapus data pekerja.');
+                    alert(data.message || 'Gagal menghapus data pekerja.');
                 }
             })
             .catch(error => console.error('Error:', error));
