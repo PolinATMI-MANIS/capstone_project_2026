@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production System - Capstone Project</title>
-    <title>Resources - Capstone Project</title>
+    <title>Capstone Project - Industrial System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -12,15 +11,10 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9;
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f1f5f9; /* Background terang bersih */
             color: #1e293b;
             overflow-x: hidden;
         }
-
 
         /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
@@ -34,7 +28,6 @@
             background-position: right bottom;
             z-index: -1;
         }
-
 
         /* Sidebar Kiri Terang */
         .sidebar {
@@ -50,7 +43,6 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.02);
         }
 
-
         .sidebar .brand {
             font-size: 1.2rem;
             font-weight: 700;
@@ -60,7 +52,6 @@
             letter-spacing: 1px;
         }
 
-
         .sidebar-category {
             font-size: 0.65rem;
             text-transform: uppercase;
@@ -68,7 +59,6 @@
             color: #94a3b8;
             padding: 10px 25px;
         }
-
 
         .sidebar a {
             padding: 12px 25px;
@@ -80,14 +70,12 @@
             border-left: 3px solid transparent;
         }
 
-
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
             background-color: #fff7ed;
             border-left: 3px solid #ff6600;
             font-weight: 600;
         }
-
 
         .sidebar a i {
             margin-right: 12px;
@@ -96,13 +84,10 @@
         }
 
         /* Container Utama */
-
         .main-content {
             margin-left: 260px;
             padding: 40px;
         }
-    </style>
-
 
         /* Sub-Navbar Atas Terang */
         .sub-navbar {
@@ -115,7 +100,6 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.03);
         }
 
-
         .sub-nav-btn {
             color: #64748b;
             text-decoration: none;
@@ -126,12 +110,10 @@
             transition: 0.3s;
         }
 
-
         .sub-nav-btn.active, .sub-nav-btn:hover {
             background-color: #ff6600;
             color: #ffffff;
         }
-
 
         /* Tombol Aksi */
         .btn-machine {
@@ -163,11 +145,10 @@
         </div>
         <div class="sidebar-category">Modules</div>
         
-        <a href="{{ route('produksi.index') }}" class="{{ request()->routeIs('produksi.*') ? 'active' : '' }}">
         <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
-        <a href="#">
+        <a href="{{ route('produksi.index') }}" class="{{ request()->routeIs('produksi.*') ? 'active' : '' }}">
             <i class="fa-solid fa-industry"></i> Production
         </a>
         <a href="#">
@@ -178,8 +159,6 @@
         </a>
         <a href="#">
             <i class="fa-solid fa-file-invoice-dollar"></i> Purchase Order
-        <a href="#">
-            <i class="fa-solid fa-users-gear"></i> Resources
         </a>
         <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
             <i class="fa-solid fa-cart-shopping"></i> Order Here !
@@ -187,9 +166,6 @@
         <a href="#">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
-    </div>
-
-    <!-- PENTING: Bagian ini yang memunculkan tabel Produksi -->
 
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
             <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
@@ -208,6 +184,7 @@
     </div>
 
     <div class="main-content">
+        <!-- PENTING: Bagian ini yang memunculkan isi halaman yang berubah-ubah (termasuk tabel Produksi) -->
         @yield('content')
     </div>
 
