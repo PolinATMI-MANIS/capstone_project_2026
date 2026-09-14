@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $totalInventory  = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::count() : 0;
         $totalProduction = class_exists('\App\Models\Production') ? \App\Models\Production::count() : 0;
         
-        // PERBAIKAN: Menghitung total data dari model ManPower
+        // Menghitung total data dari model ManPower untuk kartu statistik Resources
         $totalResources  = ManPower::count(); 
         
         $totalOrders     = class_exists('\App\Models\Order') ? \App\Models\Order::count() : 0;
@@ -47,26 +47,42 @@ class DashboardController extends Controller
         $approval = ApprovalRequest::findOrFail($id);
 
         if ($action === 'approve') {
+            // 1. APPROVAL UNTUK MAN POWER
             if ($approval->target_type === 'ManPower') {
                 if ($approval->action_type === 'create') {
-                    // Eksekusi buat data baru dari payload JSON user
                     $data = json_decode($approval->payload, true);
                     ManPower::create($data);
                 } elseif ($approval->action_type === 'update') {
-                    // Eksekusi update data dari payload JSON user
                     $target = ManPower::find($approval->target_id);
                     if ($target) {
                         $data = json_decode($approval->payload, true);
                         $target->update($data);
                     }
                 } elseif ($approval->action_type === 'delete') {
-                    // Eksekusi hapus data
                     $target = ManPower::find($approval->target_id);
                     if ($target) {
                         MachinePower::where('man_power_id', $target->id)->update(['status' => 'Standby', 'man_power_id' => null]);
                         if ($target->foto && Storage::disk('public')->exists($target->foto)) {
                             Storage::disk('public')->delete($target->foto);
                         }
+                        $target->delete();
+                    }
+                }
+            } 
+            // 2. APPROVAL UNTUK MACHINE POWER
+            elseif ($approval->target_type === 'MachinePower') {
+                if ($approval->action_type === 'create') {
+                    $data = json_decode($approval->payload, true);
+                    MachinePower::create($data);
+                } elseif ($approval->action_type === 'update') {
+                    $target = MachinePower::find($approval->target_id);
+                    if ($target) {
+                        $data = json_decode($approval->payload, true);
+                        $target->update($data);
+                    }
+                } elseif ($approval->action_type === 'delete') {
+                    $target = MachinePower::find($approval->target_id);
+                    if ($target) {
                         $target->delete();
                     }
                 }

@@ -21,6 +21,7 @@
             <h2 class="fw-bold text-dark mb-0" style="font-size: 1.6rem;">Machine & Operator Integration Dashboard</h2>
         </div>
 
+        {{-- Tombol Add Machine diizinkan untuk semua role (User akan masuk approval create) --}}
         <a href="{{ route('machine-power.create') }}" class="btn fw-bold text-white px-3 py-2 shadow-sm" style="background-color: #ff6600; border: none; border-radius: 8px;">
             <i class="fa-solid fa-plus me-1"></i> Add Machine
         </a>
@@ -42,6 +43,8 @@
                             
                             <div style="position: relative; width: 100%; margin-top: 25px; perspective: 1000px;">
                                 
+                                {{-- Tombol Drag (Hanya Admin & Super Admin) --}}
+                                @if(auth()->check() && auth()->user()->role !== 'user')
                                 <div draggable="true" 
                                      ondragstart="handleDragStart(event)" 
                                      data-id="{{ $item->id }}"
@@ -51,6 +54,7 @@
                                      style="top: -15px; z-index: 10; font-size: 0.65rem; cursor: grab; background-color: #ff6600; border: 2px solid #ffffff; user-select: none;">
                                     <i class="fa-solid fa-grip-lines"></i> DRAG MACHINE
                                 </div>
+                                @endif
 
                                 <div style="position: relative; width: 100%; height: 330px; transition: transform 0.6s; transform-style: preserve-3d;" 
                                      class="card-flipper shadow-sm" 
@@ -100,12 +104,12 @@
 
                                                     <div class="mb-2">
                                                         <span class="text-white text-opacity-75 d-block" style="font-size: 0.5rem; text-transform: uppercase;">LOKASI</span>
-                                                        <span class="fw-semibold text-white small" style="font-size: 0.75rem;">{{ $item->location }}</span>
+                                                        <span class="fw-semibold text-white small" style="font-size: 0.75rem;">{{ $item->location ?? '-' }}</span>
                                                     </div>
 
                                                     <div class="mb-1">
                                                         <span class="text-white text-opacity-75 d-block mb-1" style="font-size: 0.5rem; text-transform: uppercase;">KAPASITAS</span>
-                                                        <span class="badge bg-white text-dark px-2 py-1 fw-bold" style="font-size: 0.6rem;">{{ $item->capacity }}</span>
+                                                        <span class="badge bg-white text-dark px-2 py-1 fw-bold" style="font-size: 0.6rem;">{{ $item->capacity ?? '-' }}</span>
                                                     </div>
                                                 </div>
 
@@ -122,12 +126,25 @@
                                         </div>
 
                                         <div class="d-flex justify-content-between align-items-center pt-2 border-top border-white border-opacity-25">
-                                            <a href="{{ route('machine-power.edit', $item->id) }}" class="btn btn-sm btn-light text-primary fw-semibold px-2 py-1 shadow-sm" style="font-size: 0.65rem;">Edit</a>
-                                            <form action="{{ route('machine-power.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data mesin ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-light text-danger fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;">Delete</button>
-                                            </form>
+                                            {{-- Tombol Edit dimunculkan untuk semua role (User akan masuk approval update) --}}
+                                            @if(auth()->check())
+                                                <a href="{{ route('machine-power.edit', $item->id) }}" class="btn btn-sm btn-light text-primary fw-semibold px-2 py-1 shadow-sm" style="font-size: 0.65rem;">Edit</a>
+                                            @else
+                                                <span></span>
+                                            @endif
+
+                                            {{-- Tombol Delete (Super Admin = Hapus langsung, Admin = Req Delete) --}}
+                                            @if(auth()->check() && auth()->user()->role === 'super_admin')
+                                                <form action="{{ route('machine-power.destroy', $item->id) }}" method="POST" class="d-inline">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-light text-danger fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;" onclick="return confirm('Hapus data mesin secara permanen?')">Delete</button>
+                                                </form>
+                                            @elseif(auth()->check() && auth()->user()->role === 'admin')
+                                                <form action="{{ route('machine-power.destroy', $item->id) }}" method="POST" class="d-inline">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-light text-warning fw-semibold px-2 py-1 border-0 shadow-sm" style="font-size: 0.65rem;" onclick="return confirm('Kirim permintaan hapus mesin ke Super Admin?')">Req Delete</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -148,17 +165,19 @@
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25" id="manWaitingBox">
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <h5 class="fw-bold text-dark mb-0" style="font-size: 1rem;"><i class="fa-solid fa-user-clock text-primary me-2"></i> MAN WAITING</h5>
-                        <span class="badge bg-primary text-white px-2 py-1" id="waitingCount">{{ count($waitingOperators) }} Ready</span>
+                        <span class="badge bg-primary text-white px-2 py-1" id="waitingCount">{{ count($waitingOperators ?? []) }} Ready</span>
                     </div>
                     <p class="text-muted small mb-3" style="font-size: 0.75rem;">Operator status <b>Kerja</b> menantikan alokasi mesin.</p>
 
                     <div id="waitingList" class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
-                        @forelse($waitingOperators as $op)
+                        @forelse($waitingOperators ?? [] as $op)
                             <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between operator-drop-target" 
                                  id="operator-{{ $op->id }}"
+                                 @if(auth()->check() && auth()->user()->role !== 'user')
                                  ondragover="handleDragOver(event)"
                                  ondragleave="handleDragLeave(event)"
-                                 ondrop="handleDropOnOperator(event, '{{ $op->id }}', '{{ $op->nama }}', '{{ $op->posisi }}')">
+                                 ondrop="handleDropOnOperator(event, '{{ $op->id }}', '{{ $op->nama }}')"
+                                 @endif>
                                 <div class="d-flex align-items-center gap-2">
                                     @if($op->foto)
                                         <img src="{{ asset('storage/' . $op->foto) }}" class="rounded-circle" width="35" height="35" style="object-fit: cover;">
@@ -201,9 +220,11 @@
                                         <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;"><i class="fa-solid fa-user me-1 text-primary"></i> {{ $item->operator->nama }}</h6>
                                         <span class="text-muted d-block" style="font-size: 0.65rem;">Mesin: <b>{{ $item->machine_name }}</b> ({{ $item->machine_type }})</span>
                                     </div>
+                                    @if(auth()->check() && auth()->user()->role !== 'user')
                                     <button onclick="returnMachine('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Selesaikan / Lepas" style="font-size: 0.6rem; background-color: #0b192c;">
                                         <i class="fa-solid fa-rotate-left"></i> Return
                                     </button>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -216,9 +237,11 @@
 
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-danger" 
                      id="breakdownZone"
+                     @if(auth()->check() && auth()->user()->role !== 'user')
                      ondragover="handleDragOverZone(event)"
                      ondragleave="handleDragLeaveZone(event)"
                      ondrop="handleDropBreakdown(event)"
+                     @endif
                      style="background-color: #fff5f5 !important;">
                     
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
@@ -239,9 +262,11 @@
                                         <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $item->machine_name }}</h6>
                                         <span class="text-muted" style="font-size: 0.65rem;">{{ $item->machine_type }}</span>
                                     </div>
+                                    @if(auth()->check() && auth()->user()->role !== 'user')
                                     <button onclick="returnMachine('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Perbaiki / Standby" style="font-size: 0.6rem; background-color: #0b192c;">
                                         <i class="fa-solid fa-rotate-left"></i> Repair
                                     </button>
+                                    @endif
                                 </div>
                             @endif
                         @endforeach
@@ -252,6 +277,8 @@
                     </div>
                 </div>
 
+                {{-- Pintu Delete (Disembunyikan untuk User) --}}
+                @if(auth()->check() && auth()->user()->role !== 'user')
                 <div class="px-3 py-3 rounded-pill shadow-sm border border-2 border-danger text-center d-flex align-items-center justify-content-center gap-2" 
                      id="deleteZone"
                      ondragover="handleDeleteDragOver(event)"
@@ -261,8 +288,11 @@
                     <div class="text-danger d-flex align-items-center">
                         <i class="fa-solid fa-door-open fs-5"></i>
                     </div>
-                    <span class="fw-bold text-danger text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px;">DROP DI SINI UNTUK HAPUS MESIN</span>
+                    <span class="fw-bold text-danger text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px;">
+                        {{ auth()->user()->role === 'super_admin' ? 'DROP DI SINI UNTUK HAPUS' : 'DROP DI SINI UNTUK REQ HAPUS' }}
+                    </span>
                 </div>
+                @endif
 
             </div>
         </div>
@@ -359,20 +389,23 @@
         if (!rawData) return;
         let machine = JSON.parse(rawData);
 
-        if (confirm(`Yakin ingin menghapus mesin ${machine.name} melalui Pintu Delete?`)) {
+        if (confirm(`Yakin ingin memproses hapus data mesin ${machine.name}?`)) {
             fetch(`/machine-power/${machine.id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({ _method: 'DELETE' })
             })
-            .then(response => {
-                if (response.ok) {
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
                     location.reload();
                 } else {
-                    alert('Gagal menghapus data mesin.');
+                    alert(data.message || 'Gagal menghapus data mesin.');
                 }
             })
             .catch(error => console.error('Error:', error));

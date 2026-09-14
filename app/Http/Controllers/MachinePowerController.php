@@ -4,30 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\MachinePower;
 use App\Models\ManPower;
+use App\Models\ApprovalRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class MachinePowerController extends Controller
 {
     public function index()
     {
-        // Sinkronisasi otomatis: Jika operator di-return di halaman Man Power, lepaskan mesinnya kembali ke Standby
-        $runningMachines = MachinePower::with('operator')->where('status', 'Running')->get();
-        foreach ($runningMachines as $machine) {
-            if ($machine->operator && strtolower($machine->operator->status) !== 'kerja') {
-                $machine->update([
-                    'status' => 'Standby',
-                    'man_power_id' => null
-                ]);
-            }
-        }
-
         $machinePowers = MachinePower::with('operator')->get();
         
-        // Ambil operator yang statusnya 'Kerja' tapi belum memegang mesin apa pun
-        $waitingOperators = ManPower::where('status', 'Kerja')->get()->filter(function($worker) {
-            return MachinePower::where('man_power_id', $worker->id)->count() === 0;
-        });
+        // Mengambil operator yang berstatus 'Kerja' namun belum terikat pada mesin yang sedang 'Running'
+        $waitingOperators = ManPower::where('status', 'Kerja')
+            ->whereDoesntHave('machines', function($query) {
+                $query->where('status', 'Running');
+            })
+            ->get();
 
         return view('machine-power.index', compact('machinePowers', 'waitingOperators'));
     }
@@ -42,20 +33,27 @@ class MachinePowerController extends Controller
         $request->validate([
             'machine_name' => 'required|string|max:255',
             'machine_type' => 'required|string|max:255',
-            'location'     => 'required|string|max:255',
-            'capacity'     => 'required|string|max:255',
-            'status'       => 'required|in:Running,Breakdown,Standby',
-            'foto'         => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'status'       => 'required|in:Standby,Running,Breakdown',
         ]);
 
         $data = $request->except(['_token']);
 
-        if ($request->hasFile('foto')) {
-            $data['foto'] = $request->file('foto')->store('machine-power-photos', 'public');
+        // JIKA USER: Masuk ke Approval Request untuk Create
+        if (auth()->user()->role === 'user') {
+            ApprovalRequest::create([
+                'user_id'     => auth()->id(),
+                'target_type' => 'MachinePower',
+                'target_id'   => 0,
+                'target_name' => $data['machine_name'],
+                'action_type' => 'create',
+                'payload'     => json_encode($data),
+            ]);
+
+            return redirect()->route('machine-power.index')->with('success', 'Pengajuan penambahan Machine Power telah dikirim ke Admin/Super Admin.');
         }
 
+        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         MachinePower::create($data);
-
         return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil ditambahkan.');
     }
 
@@ -69,65 +67,83 @@ class MachinePowerController extends Controller
         $request->validate([
             'machine_name' => 'required|string|max:255',
             'machine_type' => 'required|string|max:255',
-            'location'     => 'required|string|max:255',
-            'capacity'     => 'required|string|max:255',
-            'status'       => 'required|in:Running,Breakdown,Standby',
-            'foto'         => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'status'       => 'required|in:Standby,Running,Breakdown',
         ]);
 
         $data = $request->except(['_token', '_method']);
 
-        if ($request->hasFile('foto')) {
-            if ($machinePower->foto && Storage::disk('public')->exists($machinePower->foto)) {
-                Storage::disk('public')->delete($machinePower->foto);
-            }
-            $data['foto'] = $request->file('foto')->store('machine-power-photos', 'public');
+        // JIKA USER: Masuk ke Approval Request untuk Update
+        if (auth()->user()->role === 'user') {
+            ApprovalRequest::create([
+                'user_id'     => auth()->id(),
+                'target_type' => 'MachinePower',
+                'target_id'   => $machinePower->id,
+                'target_name' => $data['machine_name'],
+                'action_type' => 'update',
+                'payload'     => json_encode($data),
+            ]);
+
+            return redirect()->route('machine-power.index')->with('success', 'Pengajuan pembaruan data Machine Power telah dikirim ke Admin/Super Admin.');
         }
 
+        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         $machinePower->update($data);
-
         return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil diperbarui.');
     }
 
-    public function destroy(MachinePower $machinePower)
+    public function destroy(Request $request, MachinePower $machinePower)
     {
-        if ($machinePower->foto && Storage::disk('public')->exists($machinePower->foto)) {
-            Storage::disk('public')->delete($machinePower->foto);
+        // SUPER ADMIN: Hapus Permanen Langsung
+        if (auth()->user()->role === 'super_admin') {
+            $machinePower->delete();
+            $msg = 'Data Machine Power berhasil dihapus permanen.';
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
+            return redirect()->route('machine-power.index')->with('success', $msg);
         }
 
-        $machinePower->delete();
-
-        return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil dihapus.');
+        // ADMIN / USER: Masuk ke Approval Request untuk Delete
+        ApprovalRequest::create([
+            'user_id'     => auth()->id(),
+            'target_type' => 'MachinePower',
+            'target_id'   => $machinePower->id,
+            'target_name' => $machinePower->machine_name,
+            'action_type' => 'delete',
+        ]);
+        
+        $msg = 'Permintaan hapus mesin telah dikirim ke Super Admin.';
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+        return redirect()->route('machine-power.index')->with('success', $msg);
     }
 
     public function updateStatus(Request $request, $id)
     {
+        $request->validate([
+            'status' => 'required|in:Standby,Running,Breakdown,Idle,Kerja,Cuti'
+        ]);
+        
+        if (auth()->user()->role === 'user') {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
         $machinePower = MachinePower::findOrFail($id);
         
-        $status = $request->input('status');
-        $manPowerId = $request->input('man_power_id');
-
-        $updateData = [];
-
-        if ($status) {
-            $updateData['status'] = $status;
-        }
+        $updateData = ['status' => $request->status];
 
         if ($request->has('man_power_id')) {
-            $updateData['man_power_id'] = $manPowerId;
-            $updateData['status'] = 'Running';
+            $updateData['man_power_id'] = $request->man_power_id;
         }
 
-        if ($status === 'Standby') {
+        if ($request->status === 'Standby') {
             $updateData['man_power_id'] = null;
         }
 
         $machinePower->update($updateData);
 
-        return response()->json([
-            'success' => true, 
-            'message' => 'Status dan alokasi mesin berhasil diperbarui',
-            'machine' => $machinePower->load('operator')
-        ]);
+        return response()->json(['success' => true, 'message' => 'Status mesin diperbarui.']);
     }
 }

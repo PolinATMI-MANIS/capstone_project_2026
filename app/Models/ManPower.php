@@ -17,4 +17,10 @@ class ManPower extends Model
         'status',
         'foto',
     ];
+
+    public function machines()
+    {
+        return $this->hasMany(MachinePower::class, 'man_power_id');
+    }
 }
+
