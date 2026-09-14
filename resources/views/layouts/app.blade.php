@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Production System - Capstone Project</title>
+    <title>Resources - Capstone Project</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -12,9 +13,14 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f1f5f9;
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f1f5f9; /* Background terang bersih */
             color: #1e293b;
             overflow-x: hidden;
         }
+
 
         /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
@@ -28,6 +34,7 @@
             background-position: right bottom;
             z-index: -1;
         }
+
 
         /* Sidebar Kiri Terang */
         .sidebar {
@@ -43,6 +50,7 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.02);
         }
 
+
         .sidebar .brand {
             font-size: 1.2rem;
             font-weight: 700;
@@ -52,6 +60,7 @@
             letter-spacing: 1px;
         }
 
+
         .sidebar-category {
             font-size: 0.65rem;
             text-transform: uppercase;
@@ -59,6 +68,7 @@
             color: #94a3b8;
             padding: 10px 25px;
         }
+
 
         .sidebar a {
             padding: 12px 25px;
@@ -70,12 +80,14 @@
             border-left: 3px solid transparent;
         }
 
+
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
             background-color: #fff7ed;
             border-left: 3px solid #ff6600;
             font-weight: 600;
         }
+
 
         .sidebar a i {
             margin-right: 12px;
@@ -84,11 +96,62 @@
         }
 
         /* Container Utama */
+
         .main-content {
             margin-left: 260px;
             padding: 40px;
         }
     </style>
+
+
+        /* Sub-Navbar Atas Terang */
+        .sub-navbar {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 6px;
+            border-radius: 12px;
+            display: inline-flex;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+
+
+        .sub-nav-btn {
+            color: #64748b;
+            text-decoration: none;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+
+        .sub-nav-btn.active, .sub-nav-btn:hover {
+            background-color: #ff6600;
+            color: #ffffff;
+        }
+
+
+        /* Tombol Aksi */
+        .btn-machine {
+            background-color: #ff6600;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 0.85rem;
+            border: none;
+            transition: 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
+        }
+        .btn-machine:hover {
+            background-color: #e55c00;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -101,6 +164,10 @@
         <div class="sidebar-category">Modules</div>
         
         <a href="{{ route('produksi.index') }}" class="{{ request()->routeIs('produksi.*') ? 'active' : '' }}">
+        <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+        </a>
+        <a href="#">
             <i class="fa-solid fa-industry"></i> Production
         </a>
         <a href="#">
@@ -111,6 +178,11 @@
         </a>
         <a href="#">
             <i class="fa-solid fa-file-invoice-dollar"></i> Purchase Order
+        <a href="#">
+            <i class="fa-solid fa-users-gear"></i> Resources
+        </a>
+        <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
+            <i class="fa-solid fa-cart-shopping"></i> Order Here !
         </a>
         <a href="#">
             <i class="fa-solid fa-flask"></i> RnD
@@ -118,6 +190,23 @@
     </div>
 
     <!-- PENTING: Bagian ini yang memunculkan tabel Produksi -->
+
+        <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
+            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fa-solid fa-headset text-danger me-2"></i>
+                    <span class="fw-bold text-dark small">Capstone Support</span>
+                </div>
+                <p class="text-muted m-0" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
+                </p>
+                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="main-content">
         @yield('content')
     </div>
