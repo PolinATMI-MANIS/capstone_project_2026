@@ -17,6 +17,7 @@ class ManPowerController extends Controller
 
     public function create()
     {
+        // User dan Admin bisa akses form input, nanti sistem approval yang menentukan
         return view('man-power.create');
     }
 
@@ -35,6 +36,8 @@ class ManPowerController extends Controller
             $data['foto'] = $request->file('foto')->store('man-power-photos', 'public');
         }
 
+        // Jika yang membuat adalah 'user', arahkan ke status pending/approval jika diperlukan
+        // Sesuai flowchart: CUD oleh user/admin memicu notifikasi approval
         ManPower::create($data);
 
         return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil ditambahkan.');
@@ -70,7 +73,11 @@ class ManPowerController extends Controller
 
     public function destroy(ManPower $manPower)
     {
-        // Sebelum dihapus, pastikan mesin yang dipegang dilepaskan dulu
+        // ATURAN FLOWCHART: Hanya Super Admin yang bisa langsung menghapus data
+        if (auth()->user()->role !== 'super_admin') {
+            return redirect()->back()->with('error', 'Aksi hapus ditolak. Fitur Delete untuk Admin/User memerlukan approval dari Super Admin.');
+        }
+
         MachinePower::where('man_power_id', $manPower->id)->update([
             'status' => 'Standby',
             'man_power_id' => null
@@ -82,7 +89,7 @@ class ManPowerController extends Controller
 
         $manPower->delete();
 
-        return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil dihapus.');
+        return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil dihapus secara permanen.');
     }
 
     public function updateStatus(Request $request, $id)
@@ -98,8 +105,6 @@ class ManPowerController extends Controller
             'status' => $newStatus
         ]);
 
-        // BUGFIX UTAMA: Jika operator dikembalikan ke 'Idle' (di-return), 
-        // lepaskan mesin yang sedang dipegangnya agar kembali ke Standby secara otomatis!
         if ($newStatus === 'Idle') {
             MachinePower::where('man_power_id', $manPower->id)->update([
                 'status' => 'Standby',
