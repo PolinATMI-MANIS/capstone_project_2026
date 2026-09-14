@@ -11,7 +11,7 @@
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9; /* Background terang bersih */
+            background-color: #f1f5f9;
             color: #1e293b;
             overflow-x: hidden;
         }
@@ -149,9 +149,10 @@
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
         <a href="{{ route('produksi.index') }}" class="{{ request()->routeIs('produksi.*') ? 'active' : '' }}">
+        <a href="#" class="{{ Request::is('production*') ? 'active' : '' }}">
             <i class="fa-solid fa-industry"></i> Production
         </a>
-        <a href="#">
+        <a href="#" class="{{ Request::is('inventory*') ? 'active' : '' }}">
             <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </a>
         <a href="#" class="{{ request()->routeIs('man-power.*') ? 'active' : '' }}">
@@ -160,31 +161,61 @@
         <a href="#">
             <i class="fa-solid fa-file-invoice-dollar"></i> Purchase Order
         </a>
+        
+        <!-- Menu Resources Utama dengan indikator jumlah approval pending -->
+        @php
+            $pendingApprovalCount = class_exists('\App\Models\ApprovalRequest') ? \App\Models\ApprovalRequest::count() : 0;
+        @endphp
+        <a href="{{ route('man-power.index') }}" class="{{ Request::is('man-power*') || Request::is('machine-power*') || Request::is('waiting-resources*') ? 'active' : '' }} d-flex justify-content-between align-items-center">
+            <div><i class="fa-solid fa-users-gear"></i> Resources</div>
+            @if($pendingApprovalCount > 0 && auth()->check() && auth()->user()->role === 'super_admin')
+                <span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">{{ $pendingApprovalCount }}</span>
+            @endif
+        </a>
+
         <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
             <i class="fa-solid fa-cart-shopping"></i> Order Here !
         </a>
-        <a href="#">
+        <a href="#" class="{{ Request::is('rnd*') ? 'active' : '' }}">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
+        <!-- Info Profile User yang Sedang Login & Tombol Logout -->
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
-            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fa-solid fa-headset text-danger me-2"></i>
-                    <span class="fw-bold text-dark small">Capstone Support</span>
-                </div>
-                <p class="text-muted m-0" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
-                </p>
-                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
-                </p>
+            <div class="p-3 rounded-3 bg-white shadow-sm border">
+                @auth
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark small text-truncate" style="max-width: 130px;">{{ auth()->user()->name }}</span>
+                        <span class="badge bg-dark font-monospace" style="font-size: 0.55rem;">{{ auth()->user()->role }}</span>
+                    </div>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100" style="font-size: 0.75rem;">
+                            <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                        </button>
+                    </form>
+                @endauth
             </div>
         </div>
+
     </div>
 
     <div class="main-content">
         <!-- PENTING: Bagian ini yang memunculkan isi halaman yang berubah-ubah (termasuk tabel Produksi) -->
+        <!-- Notifikasi Flash Message Global -->
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         @yield('content')
     </div>
 
