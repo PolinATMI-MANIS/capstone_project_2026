@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,11 +13,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // 1. Akun Super Admin
+        User::create([
+            'name'     => 'Super Admin',
+            'email'    => 'superadmin@capstone.com',
+            'password' => Hash::make('password'),
+            'role'     => 'superadmin',
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        // 2. Akun Admin
+        User::create([
+            'name'     => 'Admin R&D',
+            'email'    => 'admin@capstone.com',
+            'password' => Hash::make('password'),
+            'role'     => 'admin',
+        ]);
+
+        // 3. Akun User Biasa
+        User::create([
+            'name'     => 'User Pengaju',
+            'email'    => 'user@capstone.com',
+            'password' => Hash::make('password'),
+            'role'     => 'user',
+        ]);
     }
 }
