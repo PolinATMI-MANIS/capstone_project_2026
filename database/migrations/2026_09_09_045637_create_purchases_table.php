@@ -13,10 +13,18 @@ return new class extends Migration
     {
         Schema::create('purchases', function (Blueprint $table) {
             $table->id();
-            $table->string('no_po')->unique();
-            $table->string('supplier');
-            $table->date('tanggal_pembelian');
-            $table->string('status')->default('Pending');
+            $table->string('no_po')->unique()->nullable();
+            $table->string('nama_customer');
+            $table->string('kode_barang');
+            $table->string('nama_barang');
+            $table->integer('kuantitas');
+            $table->decimal('harga_satuan', 15, 2);
+            $table->string('permintaan_material');
+            $table->date('tanggal_pemesanan');
+            $table->dateTime('waktu_tgl_deadline');
+            $table->string('estimasi_pengerjaan');
+            $table->enum('status', ['Waiting', 'On Progress', 'Completed', 'Cancelled'])->default('Waiting');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
     }

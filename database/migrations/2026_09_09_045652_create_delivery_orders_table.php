@@ -6,26 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('delivery_orders', function (Blueprint $table) {
             $table->id();
-            $table->string('no_do')->unique();
-            $table->foreignId('purchase_id')->constrained('purchases')->onDelete('cascade');
-            $table->date('tanggal_pengiriman');
-            $table->string('status_pengiriman')->default('Proses');
+            $table->string('no_do');
+            $table->string('ref_po'); // Relasi ke nomor PO
+            $table->date('tanggal_kirim');
+            $table->string('driver')->nullable();
+            $table->string('status')->default('On Progress');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
+        
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
-        Schema::dropIfExists('delivery_orders');
+        Schema::dropIfExists('deliveries');
     }
 };

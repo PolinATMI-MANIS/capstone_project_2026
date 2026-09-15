@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -42,4 +43,18 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    // Tambahkan fungsi ini di dalam class User
+    public function getRoleAttribute()
+    {
+        // Tentukan email untuk masing-masing role di sini
+        if ($this->email === 'superadmin@capstone.com') {
+            return 'superadmin';
+        } elseif ($this->email === 'admin@capstone.com') {
+            return 'admin';
+        } else {
+            // Selain email di atas, otomatis dianggap sebagai User biasa
+            return 'user';
+        }
+    }
 }

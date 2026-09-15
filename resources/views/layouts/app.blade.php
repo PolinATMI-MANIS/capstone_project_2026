@@ -9,14 +9,12 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9; /* Background terang bersih */
+            background-color: #f1f5f9;
             color: #1e293b;
             overflow-x: hidden;
         }
-
 
         /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
@@ -30,7 +28,6 @@
             background-position: right bottom;
             z-index: -1;
         }
-
 
         /* Sidebar Kiri Terang */
         .sidebar {
@@ -46,7 +43,6 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.02);
         }
 
-
         .sidebar .brand {
             font-size: 1.2rem;
             font-weight: 700;
@@ -56,7 +52,6 @@
             letter-spacing: 1px;
         }
 
-
         .sidebar-category {
             font-size: 0.65rem;
             text-transform: uppercase;
@@ -64,7 +59,6 @@
             color: #94a3b8;
             padding: 10px 25px;
         }
-
 
         .sidebar a {
             padding: 12px 25px;
@@ -76,7 +70,6 @@
             border-left: 3px solid transparent;
         }
 
-
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
             background-color: #fff7ed;
@@ -84,19 +77,16 @@
             font-weight: 600;
         }
 
-
         .sidebar a i {
             margin-right: 12px;
             width: 20px;
             text-align: center;
         }
 
-
         .main-content {
             margin-left: 260px;
             padding: 40px;
         }
-
 
         /* Sub-Navbar Atas Terang */
         .sub-navbar {
@@ -109,7 +99,6 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.03);
         }
 
-
         .sub-nav-btn {
             color: #64748b;
             text-decoration: none;
@@ -120,12 +109,10 @@
             transition: 0.3s;
         }
 
-
         .sub-nav-btn.active, .sub-nav-btn:hover {
             background-color: #ff6600;
             color: #ffffff;
         }
-
 
         /* Tombol Aksi */
         .btn-machine {
@@ -139,6 +126,7 @@
             transition: 0.3s;
             box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
         }
+        
         .btn-machine:hover {
             background-color: #e55c00;
             transform: translateY(-2px);
@@ -150,26 +138,39 @@
 
     <div class="gear-bg"></div>
 
-
     <div class="sidebar">
         <div class="brand">
             <i class="fa-solid fa-cube text-danger me-2"></i> CAPSTONE 2026
         </div>
+        
         <div class="sidebar-category">Modules</div>
-        <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
-        <a href="#"><i class="fa-solid fa-industry"></i> Production</a>
-        <a href="#"><i class="fa-solid fa-boxes-stacked"></i> Inventory</a>
-        <a href="/purchase" class="{{ Request::is('purchase*') ? 'active' : '' }}"><i class="fa-solid fa-file-invoice-dollar"></i> Purchase Order</a>
-        <a href="/delivery" class="{{ Request::is('delivery*') ? 'active' : '' }}"><i class="fa-solid fa-truck-ramp-box"></i> Delivery Order</a>
-        <a href="#"><i class="fa-solid fa-flask"></i> RnD</a>
-    </div>
+        <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+        </a>
+        <a href="/production">
+            <i class="fa-solid fa-industry"></i> Production
+        </a>
+        <a href="/inventory">
+            <i class="fa-solid fa-boxes-stacked"></i> Inventory
+        </a>
 
+        <!-- Menu Single (Tanpa Dropdown) -->
+        <li class="nav-item">
+            <a href="/purchase-delivery" class="nav-link {{ Request::is('purchase-delivery*') ? 'active' : '' }}">
+                <i class="fa-solid fa-cart-flatbed me-2"></i>
+                <span>Purchase & Delivery</span>
+            </a>
+        </li>
+
+        <a href="/rnd">
+            <i class="fa-solid fa-flask"></i> RnD
+        </a>
+    </div>
 
     <div class="main-content">
         @yield('content')
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
