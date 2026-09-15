@@ -41,7 +41,7 @@ Route::get('/machine-power/{machinePower}/edit', [MachinePowerController::class,
 Route::put('/machine-power/{machinePower}', [MachinePowerController::class, 'update'])->name('machine-power.update');
 Route::patch('/machine-power/{machinePower}', [MachinePowerController::class, 'update']);
 Route::delete('/machine-power/{machinePower}', [MachinePowerController::class, 'destroy'])->name('machine-power.destroy');
-Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class, 'updateStatus']);
+Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class, 'updateStatus'])->name('machine-power.update-status');
 
 
 Route::get('/waiting-for-resources', [WaitingResourceController::class, 'index'])->name('waiting-resources.index');

@@ -18,10 +18,10 @@ class MachinePower extends Model
         'capacity',
         'status',
         'foto',
-        'man_power_id', // Tambahkan ini
+        'man_power_id',
+        'start_time'
     ];
 
-    // Definisikan relasi ke ManPower
     public function operator()
     {
         return $this->belongsTo(ManPower::class, 'man_power_id');

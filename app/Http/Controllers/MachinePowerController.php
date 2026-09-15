@@ -13,7 +13,6 @@ class MachinePowerController extends Controller
     {
         $machinePowers = MachinePower::with('operator')->get();
         
-        // Mengambil operator yang berstatus 'Kerja' namun belum terikat pada mesin yang sedang 'Running'
         $waitingOperators = ManPower::where('status', 'Kerja')
             ->whereDoesntHave('machines', function($query) {
                 $query->where('status', 'Running');
@@ -38,7 +37,6 @@ class MachinePowerController extends Controller
 
         $data = $request->except(['_token']);
 
-        // JIKA USER: Masuk ke Approval Request untuk Create
         if (auth()->user()->role === 'user') {
             ApprovalRequest::create([
                 'user_id'     => auth()->id(),
@@ -52,7 +50,6 @@ class MachinePowerController extends Controller
             return redirect()->route('machine-power.index')->with('success', 'Pengajuan penambahan Machine Power telah dikirim ke Admin/Super Admin.');
         }
 
-        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         MachinePower::create($data);
         return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil ditambahkan.');
     }
@@ -72,7 +69,6 @@ class MachinePowerController extends Controller
 
         $data = $request->except(['_token', '_method']);
 
-        // JIKA USER: Masuk ke Approval Request untuk Update
         if (auth()->user()->role === 'user') {
             ApprovalRequest::create([
                 'user_id'     => auth()->id(),
@@ -86,14 +82,12 @@ class MachinePowerController extends Controller
             return redirect()->route('machine-power.index')->with('success', 'Pengajuan pembaruan data Machine Power telah dikirim ke Admin/Super Admin.');
         }
 
-        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         $machinePower->update($data);
         return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil diperbarui.');
     }
 
     public function destroy(Request $request, MachinePower $machinePower)
     {
-        // SUPER ADMIN: Hapus Permanen Langsung
         if (auth()->user()->role === 'super_admin') {
             $machinePower->delete();
             $msg = 'Data Machine Power berhasil dihapus permanen.';
@@ -104,7 +98,6 @@ class MachinePowerController extends Controller
             return redirect()->route('machine-power.index')->with('success', $msg);
         }
 
-        // ADMIN / USER: Masuk ke Approval Request untuk Delete
         ApprovalRequest::create([
             'user_id'     => auth()->id(),
             'target_type' => 'MachinePower',
@@ -138,12 +131,17 @@ class MachinePowerController extends Controller
             $updateData['man_power_id'] = $request->man_power_id;
         }
 
+        if ($request->has('start_time')) {
+            $updateData['start_time'] = $request->start_time;
+        }
+
         if ($request->status === 'Standby') {
             $updateData['man_power_id'] = null;
+            $updateData['start_time'] = null;
         }
 
         $machinePower->update($updateData);
 
-        return response()->json(['success' => true, 'message' => 'Status mesin diperbarui.']);
+        return response()->json(['success' => true, 'message' => 'Status dan jam mulai mesin diperbarui.']);
     }
 }
