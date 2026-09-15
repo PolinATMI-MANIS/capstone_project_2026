@@ -15,7 +15,13 @@ return new class extends Migration
             $table->id();
             $table->string('nama');
             $table->string('posisi');
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            
+            // PERBAIKAN 1: Menyesuaikan isi status dengan Controller
+            $table->enum('status', ['Idle', 'Kerja', 'Cuti'])->default('Idle');
+            
+            // PERBAIKAN 2: Menambahkan kolom foto agar tidak error saat upload gambar
+            $table->string('foto')->nullable();
+            
             $table->timestamps();
         });
     }

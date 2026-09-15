@@ -14,7 +14,7 @@
                     Man Power
                 </a>
                 <span class="text-muted">/</span>
-                <a href="{{ route('machine-power.index') }}" class="text-decoration-none fw-medium text-muted" style="font-size: 0.9rem;">
+                <a href="{{ Route::has('machine-power.index') ? route('machine-power.index') : '#' }}" class="text-decoration-none fw-medium text-muted" style="font-size: 0.9rem;">
                     Machine Power
                 </a>
             </div>
@@ -124,14 +124,12 @@
                                         </div>
 
                                         <div class="d-flex justify-content-between align-items-center pt-2 border-top border-white border-opacity-25">
-                                            {{-- Tombol Edit dimunculkan untuk SEMUA role (User akan masuk approval update) --}}
                                             @if(auth()->check())
                                                 <a href="{{ route('man-power.edit', $item->id) }}" class="btn btn-sm btn-light text-primary fw-semibold px-2 py-1 shadow-sm" style="font-size: 0.65rem;">Edit</a>
                                             @else
                                                 <span></span>
                                             @endif
 
-                                            {{-- Tombol Delete (Super Admin = Hapus langsung, Admin = Req Delete, User = Tidak ada) --}}
                                             @if(auth()->check() && auth()->user()->role === 'super_admin')
                                                 <form action="{{ route('man-power.destroy', $item->id) }}" method="POST" class="d-inline">
                                                     @csrf
@@ -165,26 +163,28 @@
                 
                 <!-- CARD 1: WAITING FOR RESOURCES -->
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25">
+                    @php
+                        // PERBAIKAN: Menarik data SPK langsung dari tabel Produksi Anda
+                        $waitingResources = class_exists('\App\Models\ProductionOrder') 
+                            ? \App\Models\ProductionOrder::whereIn('status', ['Menunggu Bahan Baku', 'Proses Produksi Berjalan'])->latest()->take(5)->get() 
+                            : collect();
+                    @endphp
+
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <h5 class="fw-bold text-dark mb-0" style="font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> WAITING FOR RESOURCES</h5>
-                        <span class="badge bg-primary text-white px-2 py-1" id="waitingResourcesCount">0 Queue</span>
+                        <span class="badge bg-primary text-white px-2 py-1" id="waitingResourcesCount">{{ $waitingResources->count() }} Queue</span>
                     </div>
                     <p class="text-muted small mb-3" style="font-size: 0.75rem;">Daftar produksi masuk yang menanti alokasi sumber daya.</p>
 
                     <div id="waitingResourcesList" class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
-                        @php
-                            use App\Models\WaitingResource;
-                            $waitingResources = WaitingResource::latest()->take(5)->get();
-                        @endphp
-
                         @forelse($waitingResources as $res)
                             <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between">
                                 <div>
-                                    <span class="badge bg-warning bg-opacity-25 text-dark font-monospace mb-1" style="font-size: 0.55rem;">#{{ $res->production_code }}</span>
-                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.8rem;">{{ $res->product_name }}</h6>
-                                    <span class="text-muted" style="font-size: 0.65rem;">Qty: <b>{{ $res->quantity }} Pcs</b></span>
+                                    <span class="badge bg-warning bg-opacity-25 text-dark font-monospace mb-1" style="font-size: 0.55rem;">#{{ $res->no_po }}</span>
+                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.8rem;">{{ $res->produk }}</h6>
+                                    <span class="text-muted" style="font-size: 0.65rem;">Qty: <b>{{ $res->jumlah_produksi }} Pcs</b></span>
                                 </div>
-                                <a href="{{ route('waiting-resources.index') }}" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.65rem;">View</a>
+                                <a href="{{ route('waiting-resources.index') }}" class="btn btn-sm btn-outline-primary py-1 px-2 fw-bold" style="font-size: 0.65rem;">Alokasikan</a>
                             </div>
                         @empty
                             <div class="text-center py-2 text-muted opacity-50" style="font-size: 0.75rem;">
@@ -276,7 +276,7 @@
                     </div>
                 </div>
 
-                <!-- CARD 4: PINTU DELETE (Disembunyikan untuk User) -->
+                <!-- CARD 4: PINTU DELETE -->
                 @if(auth()->check() && auth()->user()->role !== 'user')
                 <div class="px-3 py-3 rounded-pill shadow-sm border border-2 border-danger text-center d-flex align-items-center justify-content-center gap-2" 
                      id="deleteZone"
