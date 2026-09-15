@@ -154,20 +154,14 @@ class ManPowerController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $request->validate(['status' => 'required|in:Idle,Kerja,Cuti']);
-        $manPower = ManPower::findOrFail($id);
+        $manPower = \App\Models\ManPower::findOrFail($id);
+        $manPower->status = $request->status;
         
-        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        // Simpan ID SPK kalau dikirim dari frontend, kosongkan kalau dia Cuti / Idle
+        $manPower->production_order_id = $request->production_order_id ?? null; 
+        
+        $manPower->save();
 
-        if ($userRole === 'user') {
-            return response()->json(['success' => false, 'message' => 'User tidak memiliki izin ubah status langsung.'], 403);
-        }
-
-        $manPower->update(['status' => $request->status]);
-        if ($request->status === 'Idle') {
-            MachinePower::where('man_power_id', $manPower->id)->update(['status' => 'Standby', 'man_power_id' => null]);
-        }
-
-        return response()->json(['success' => true, 'message' => 'Status diperbarui.']);
+        return response()->json(['success' => true]);
     }
 }

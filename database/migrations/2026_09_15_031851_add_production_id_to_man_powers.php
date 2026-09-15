@@ -12,13 +12,18 @@ return new class extends Migration
     public function up()
     {
         Schema::table('machine_powers', function (Blueprint $table) {
-            $table->renameColumn('operating_hours', 'start_time');
+            if (!Schema::hasColumn('machine_powers', 'start_time')) {
+                $table->time('start_time')->nullable(); 
+            }
         });
     }
+
     public function down()
     {
         Schema::table('machine_powers', function (Blueprint $table) {
-            $table->renameColumn('start_time', 'operating_hours');
+            if (Schema::hasColumn('machine_powers', 'start_time')) {
+                $table->dropColumn('start_time');
+            }
         });
     }
 };
