@@ -16,7 +16,6 @@
             overflow-x: hidden;
         }
 
-        /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
             position: fixed;
             top: 0;
@@ -29,7 +28,6 @@
             z-index: -1;
         }
 
-        /* Sidebar Kiri Terang */
         .sidebar {
             height: 100vh;
             width: 260px;
@@ -41,6 +39,8 @@
             padding-top: 25px;
             z-index: 100;
             box-shadow: 4px 0 15px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar .brand {
@@ -83,13 +83,11 @@
             text-align: center;
         }
 
-        /* Container Utama */
         .main-content {
             margin-left: 260px;
             padding: 40px;
         }
 
-        /* Sub-Navbar Atas Terang */
         .sub-navbar {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
@@ -115,7 +113,6 @@
             color: #ffffff;
         }
 
-        /* Tombol Aksi */
         .btn-machine {
             background-color: #ff6600;
             color: #fff;
@@ -157,20 +154,17 @@
             <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </a>
 
-        <!-- PENGAMAN ERROR RESOURCES -->
         @php
             $pendingApprovalCount = 0;
             try {
-                // Mengecek apakah model dan tabelnya benar-benar sudah ada di database sebelum dihitung
                 if (class_exists('\App\Models\ApprovalRequest') && \Illuminate\Support\Facades\Schema::hasTable('approval_requests')) {
                     $pendingApprovalCount = \App\Models\ApprovalRequest::where('status', 'pending')->count();
                 }
             } catch (\Exception $e) {
-                $pendingApprovalCount = 0; // Jika error/belum migrate, paksa jadi 0 agar web tidak crash
+                $pendingApprovalCount = 0;
             }
         @endphp
 
-        <!-- Perbaikan Link Route Resources agar aman diklik -->
         <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="{{ request()->routeIs('man-power.*') || request()->is('machine*') ? 'active' : '' }}">
             <div class="d-flex justify-content-between align-items-center w-100">
                 <div><i class="fa-solid fa-users-gear"></i> Resources</div>
@@ -188,18 +182,34 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
-        <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
-            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fa-solid fa-headset text-danger me-2"></i>
-                    <span class="fw-bold text-dark small">Capstone Support</span>
+        <div class="mt-auto px-3 pb-3">
+            <div class="p-3 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                            {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}
+                        </div>
+                        <div style="overflow: hidden;">
+                            <h6 class="fw-bold text-dark mb-0 text-truncate" style="font-size: 0.75rem;">{{ Auth::user()->name ?? 'Guest' }}</h6>
+                            <span class="badge bg-dark text-uppercase font-monospace" style="font-size: 0.45rem;">{{ str_replace('_', ' ', Auth::user()->role ?? 'user') }}</span>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-muted m-0" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
-                </p>
-                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-phone me-1"></i> +62 81314350301
-                </p>
+
+                <div class="d-flex flex-column gap-1">
+                    <a href="{{ route('login') }}" class="btn btn-sm btn-light border fw-semibold text-dark text-start d-flex align-items-center justify-content-between py-1 px-2" style="font-size: 0.7rem;">
+                        <span><i class="fa-solid fa-user-gear text-warning me-1"></i> Ganti Akun</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket text-muted" style="font-size: 0.6rem;"></i>
+                    </a>
+
+                    <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-light border fw-semibold text-danger text-start d-flex align-items-center justify-content-between py-1 px-2 w-100" style="font-size: 0.7rem;">
+                            <span><i class="fa-solid fa-power-off text-danger me-1"></i> Logout</span>
+                            <i class="fa-solid fa-right-from-bracket text-danger" style="font-size: 0.6rem;"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

@@ -29,7 +29,7 @@
 
     <div class="row">
         
-        <!-- KOLOM KIRI: DIREKTORI PEKERJA -->
+        <!-- KOLOM KIRI: DIREKTORI PEKERJA IDLE -->
         <div class="col-lg-8 border-end border-secondary border-opacity-10 pe-lg-4">
             <h5 class="fw-bold text-dark mb-3" style="font-size: 1rem;"><i class="fa-solid fa-users text-warning me-2"></i> Available / Idle Man Power</h5>
             
@@ -157,90 +157,66 @@
             </div>
         </div>
 
-        <!-- KOLOM KANAN: PANEL KONTROL -->
+        <!-- KOLOM KANAN: PRODUCTION ASSIGNMENT ZONE -->
         <div class="col-lg-4 ps-lg-4 mt-4 mt-lg-0">
             <div class="sticky-top d-flex flex-column gap-4" style="top: 20px;">
                 
-                <!-- CARD 1: WAITING FOR RESOURCES -->
+                <!-- CARD 1: DAFTAR PRODUKSI YANG READY DIJALANKAN -->
+                @php
+                    // Menarik data SPK yang statusnya 'ready' dari modul Waiting Resources
+                    $readyProductions = class_exists('\App\Models\ProductionOrder') 
+                        ? \App\Models\ProductionOrder::where('status', 'ready')->get() 
+                        : collect();
+                @endphp
+
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25">
-                    @php
-                        // PERBAIKAN: Menarik data SPK langsung dari tabel Produksi Anda
-                        $waitingResources = class_exists('\App\Models\ProductionOrder') 
-                            ? \App\Models\ProductionOrder::whereIn('status', ['Menunggu Bahan Baku', 'Proses Produksi Berjalan'])->latest()->take(5)->get() 
-                            : collect();
-                    @endphp
-
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                        <h5 class="fw-bold text-dark mb-0" style="font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> WAITING FOR RESOURCES</h5>
-                        <span class="badge bg-primary text-white px-2 py-1" id="waitingResourcesCount">{{ $waitingResources->count() }} Queue</span>
+                        <h5 class="fw-bold text-dark mb-0" style="font-size: 1rem;"><i class="fa-solid fa-industry text-primary me-2"></i> PRODUCTION ASSIGNMENT</h5>
+                        <span class="badge bg-primary text-white px-2 py-1">{{ $readyProductions->count() }} Ready</span>
                     </div>
-                    <p class="text-muted small mb-3" style="font-size: 0.75rem;">Daftar produksi masuk yang menanti alokasi sumber daya.</p>
+                    <p class="text-muted small mb-3" style="font-size: 0.75rem;">Drop pekerja pada SPK yang ingin dijalankan.</p>
 
-                    <div id="waitingResourcesList" class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
-                        @forelse($waitingResources as $res)
-                            <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between">
-                                <div>
-                                    <span class="badge bg-warning bg-opacity-25 text-dark font-monospace mb-1" style="font-size: 0.55rem;">#{{ $res->no_po }}</span>
-                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.8rem;">{{ $res->produk }}</h6>
-                                    <span class="text-muted" style="font-size: 0.65rem;">Qty: <b>{{ $res->jumlah_produksi }} Pcs</b></span>
+                    <div style="max-height: 450px; overflow-y: auto; padding-right: 5px;">
+                        @forelse($readyProductions as $prod)
+                            <div class="p-3 mb-3 rounded-4 bg-white shadow-sm border border-2 border-dashed production-drop-zone" 
+                                 id="prodZone-{{ $prod->id }}"
+                                 ondragover="handleDragOver(event, 'prodZone-{{ $prod->id }}')"
+                                 ondragleave="handleDragLeave(event, 'prodZone-{{ $prod->id }}')"
+                                 ondrop="handleProdDrop(event, '{{ $prod->id }}')"
+                                 style="border-color: #0d6efd !important; background-color: #f8f9fa !important; transition: 0.3s;">
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $prod->produk }}</h6>
+                                    <span class="badge bg-dark bg-opacity-10 text-dark font-monospace" style="font-size: 0.55rem;">#{{ $prod->no_po }}</span>
                                 </div>
-                                <a href="{{ route('waiting-resources.index') }}" class="btn btn-sm btn-outline-primary py-1 px-2 fw-bold" style="font-size: 0.65rem;">Alokasikan</a>
+                                <div class="mb-2">
+                                    <span class="text-muted d-block" style="font-size: 0.6rem;">Target Qty: <b>{{ $prod->jumlah_produksi }} Pcs</b></span>
+                                </div>
+
+                                <!-- Container list pekerja yang diassign ke SPK ini -->
+                                <div id="assigned-workers-prod-{{ $prod->id }}" class="d-flex flex-column gap-2 assigned-workers-container">
+                                    <div id="ph-prod-{{ $prod->id }}" class="text-center py-2 text-muted opacity-50" style="font-size: 0.7rem;">
+                                        Drop pekerja di sini
+                                    </div>
+                                    {{-- Catatan: Jika di database table man_power sudah ada kolom production_order_id, 
+                                         bisa dilooping data pekerja yang assigned ke SPK ini di sini --}}
+                                </div>
                             </div>
                         @empty
-                            <div class="text-center py-2 text-muted opacity-50" style="font-size: 0.75rem;">
-                                Belum ada antrean produksi.
+                            <div class="text-center py-4 border rounded-3 bg-light">
+                                <i class="fa-solid fa-box-open text-muted mb-2 fs-4 opacity-50"></i>
+                                <p class="text-muted small mb-0" style="font-size: 0.75rem;">Belum ada SPK status Ready.<br>Kembali ke Waiting Resources.</p>
                             </div>
                         @endforelse
                     </div>
                 </div>
 
-                <!-- CARD 2: WORK ZONE -->
-                <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-dashed" 
-                     id="workZone"
-                     ondragover="handleDragOver(event, 'workZone')"
-                     ondragleave="handleDragLeave(event, 'workZone')"
-                     ondrop="handleDrop(event, 'Kerja')"
-                     style="background-color: #fffdf5 !important; border-color: #ff6600 !important; transition: 0.3s;">
-                    
-                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
-                        <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;"><i class="fa-solid fa-industry text-warning me-2"></i> WORK ZONE</h5>
-                        <span class="badge text-white px-2 py-1" id="workCount" style="background-color: #ff6600;">0 Active</span>
-                    </div>
-                    <p class="text-muted small mb-3" style="font-size: 0.75rem;">Drop di sini untuk status <b>Kerja</b>.</p>
-
-                    <div id="workList" class="d-flex flex-column gap-2">
-                        @php $hasWorking = false; @endphp
-                        @foreach ($manPowers as $item)
-                            @php $statusClean = trim(ucfirst(strtolower($item->status ?? ''))); @endphp
-                            @if($statusClean == 'Kerja')
-                                @php $hasWorking = true; @endphp
-                                <div id="assigned-{{ $item->id }}" class="p-2.5 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="badge text-white font-monospace mb-1" style="font-size: 0.55rem; background-color: #ff6600;">#{{ str_pad($item->id, 3, '0', STR_PAD_LEFT) }}</span>
-                                        <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $item->nama }}</h6>
-                                        <span class="text-muted" style="font-size: 0.65rem;">{{ $item->posisi }}</span>
-                                    </div>
-                                    @if(auth()->check() && auth()->user()->role !== 'user')
-                                    <button onclick="returnWorker('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Kembalikan ke Idle" style="font-size: 0.6rem; background-color: #0b192c;">
-                                        <i class="fa-solid fa-rotate-left"></i> Return
-                                    </button>
-                                    @endif
-                                </div>
-                            @endif
-                        @endforeach
-
-                        <div id="workPlaceholder" class="text-center py-3 text-muted opacity-50" style="display: {{ $hasWorking ? 'none' : 'block' }}; font-size: 0.8rem;">
-                            <p class="small mb-0">Kosong (Drop pekerja ke sini)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CARD 3: CUTI ZONE -->
+                <!-- CARD 2: CUTI ZONE -->
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-dashed border-secondary" 
                      id="cutiZone"
                      ondragover="handleDragOver(event, 'cutiZone')"
                      ondragleave="handleDragLeave(event, 'cutiZone')"
-                     ondrop="handleDrop(event, 'Cuti')"
+                     ondrop="handleCutiDrop(event)"
                      style="background-color: #f8fafc !important; transition: 0.3s;">
                     
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
@@ -276,7 +252,7 @@
                     </div>
                 </div>
 
-                <!-- CARD 4: PINTU DELETE -->
+                <!-- CARD 3: PINTU DELETE -->
                 @if(auth()->check() && auth()->user()->role !== 'user')
                 <div class="px-3 py-3 rounded-pill shadow-sm border border-2 border-danger text-center d-flex align-items-center justify-content-center gap-2" 
                      id="deleteZone"
@@ -318,18 +294,67 @@
 
     function handleDragOver(e, zoneId) {
         e.preventDefault();
-        if(zoneId === 'workZone') document.getElementById('workZone').style.backgroundColor = '#ffe5d0';
-        if(zoneId === 'cutiZone') document.getElementById('cutiZone').style.backgroundColor = '#e2e8f0';
+        if(zoneId === 'cutiZone') {
+            document.getElementById('cutiZone').style.backgroundColor = '#e2e8f0';
+        } else if(zoneId.startsWith('prodZone-')) {
+            document.getElementById(zoneId).style.backgroundColor = '#e7f1ff'; // Biru muda
+        }
     }
 
     function handleDragLeave(e, zoneId) {
-        if(zoneId === 'workZone') document.getElementById('workZone').style.backgroundColor = '#fffdf5';
-        if(zoneId === 'cutiZone') document.getElementById('cutiZone').style.backgroundColor = '#f8fafc';
+        if(zoneId === 'cutiZone') {
+            document.getElementById('cutiZone').style.backgroundColor = '#f8fafc';
+        } else if(zoneId.startsWith('prodZone-')) {
+            document.getElementById(zoneId).style.backgroundColor = '#f8f9fa';
+        }
     }
 
-    function handleDrop(e, targetStatus) {
+    // Handle Drop Khusus untuk Produksi (Assign Worker ke SPK)
+    function handleProdDrop(e, prodId) {
         e.preventDefault();
-        document.getElementById('workZone').style.backgroundColor = '#fffdf5';
+        let zoneId = 'prodZone-' + prodId;
+        document.getElementById(zoneId).style.backgroundColor = '#f8f9fa';
+
+        let rawData = e.dataTransfer.getData('text/plain');
+        if (!rawData) return;
+        let worker = JSON.parse(rawData);
+
+        // Mencegah duplikasi drop
+        if (document.getElementById('assigned-' + worker.id)) return;
+
+        // Idealnya, di Controller Anda perlu menyimpan 'prodId' ke database worker juga
+        // Untuk sekarang kita tetap jalankan updateStatus('Kerja') ke backend
+        updateWorkerStatusInDatabase(worker.id, 'Kerja', function() {
+            let leftCard = document.getElementById('worker-' + worker.id);
+            if (leftCard) leftCard.style.display = 'none';
+
+            let targetContainerId = 'assigned-workers-prod-' + prodId;
+            let placeholderId = 'ph-prod-' + prodId;
+
+            let placeholder = document.getElementById(placeholderId);
+            if (placeholder) placeholder.style.display = 'none';
+
+            let targetList = document.getElementById(targetContainerId);
+            let cardItem = document.createElement('div');
+            cardItem.id = 'assigned-' + worker.id;
+            cardItem.className = 'p-2 bg-white rounded-3 shadow-sm border border-primary border-opacity-25 d-flex justify-content-between align-items-center mt-1';
+            cardItem.innerHTML = `
+                <div>
+                    <span class="badge font-monospace mb-1" style="font-size: 0.5rem; background-color: #0d6efd; color: white;">#${worker.id.toString().padStart(3, '0')}</span>
+                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">${worker.nama}</h6>
+                    <span class="text-muted" style="font-size: 0.6rem;">${worker.posisi}</span>
+                </div>
+                <button onclick="returnWorker('${worker.id}', '${placeholderId}')" class="btn btn-sm text-white fw-bold px-1 py-1" style="font-size: 0.55rem; background-color: #0b192c;">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            `;
+            targetList.appendChild(cardItem);
+        });
+    }
+
+    // Handle Drop untuk Cuti
+    function handleCutiDrop(e) {
+        e.preventDefault();
         document.getElementById('cutiZone').style.backgroundColor = '#f8fafc';
 
         let rawData = e.dataTransfer.getData('text/plain');
@@ -338,27 +363,24 @@
 
         if (document.getElementById('assigned-' + worker.id)) return;
 
-        updateWorkerStatusInDatabase(worker.id, targetStatus, function() {
+        updateWorkerStatusInDatabase(worker.id, 'Cuti', function() {
             let leftCard = document.getElementById('worker-' + worker.id);
             if (leftCard) leftCard.style.display = 'none';
 
-            let containerId = targetStatus === 'Kerja' ? 'workList' : 'cutiList';
-            let placeholderId = targetStatus === 'Kerja' ? 'workPlaceholder' : 'cutiPlaceholder';
-
-            let placeholder = document.getElementById(placeholderId);
+            let placeholder = document.getElementById('cutiPlaceholder');
             if (placeholder) placeholder.style.display = 'none';
 
-            let targetList = document.getElementById(containerId);
+            let targetList = document.getElementById('cutiList');
             let cardItem = document.createElement('div');
             cardItem.id = 'assigned-' + worker.id;
             cardItem.className = 'p-2.5 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center';
             cardItem.innerHTML = `
                 <div>
-                    <span class="badge font-monospace mb-1" style="font-size: 0.55rem; background-color: ${targetStatus === 'Kerja' ? '#ff6600' : '#64748b'}; color: white;">#${worker.id.toString().padStart(3, '0')}</span>
+                    <span class="badge bg-secondary text-white font-monospace mb-1" style="font-size: 0.55rem;">#${worker.id.toString().padStart(3, '0')}</span>
                     <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">${worker.nama}</h6>
                     <span class="text-muted" style="font-size: 0.65rem;">${worker.posisi}</span>
                 </div>
-                <button onclick="returnWorker('${worker.id}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.6rem; background-color: #0b192c;">
+                <button onclick="returnWorker('${worker.id}', 'cutiPlaceholder')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.6rem; background-color: #0b192c;">
                     <i class="fa-solid fa-rotate-left"></i> Return
                 </button>
             `;
@@ -367,7 +389,7 @@
         });
     }
 
-    function returnWorker(id) {
+    function returnWorker(id, placeholderId = null) {
         updateWorkerStatusInDatabase(id, 'Idle', function() {
             let assignedItem = document.getElementById('assigned-' + id);
             if (assignedItem) assignedItem.remove();
@@ -381,6 +403,7 @@
     }
 
     function updateWorkerStatusInDatabase(id, newStatus, callback) {
+        // Idealnya butuh request kirim param 'production_order_id' ke backend jika statusnya 'Kerja'
         fetch(`/man-power/${id}/update-status`, {
             method: 'PATCH',
             headers: {
@@ -446,21 +469,23 @@
     }
 
     function checkPlaceholders() {
-        let workList = document.getElementById('workList');
-        if (workList.querySelectorAll('div[id^="assigned-"]').length === 0) {
-            document.getElementById('workPlaceholder').style.display = 'block';
+        let cutiList = document.getElementById('cutiList');
+        if (cutiList && cutiList.querySelectorAll('div[id^="assigned-"]').length === 0) {
+            let cPh = document.getElementById('cutiPlaceholder');
+            if(cPh) cPh.style.display = 'block';
         }
 
-        let cutiList = document.getElementById('cutiList');
-        if (cutiList.querySelectorAll('div[id^="assigned-"]').length === 0) {
-            document.getElementById('cutiPlaceholder').style.display = 'block';
-        }
+        // Check each production container placeholder
+        document.querySelectorAll('.assigned-workers-container').forEach(container => {
+            if (container.querySelectorAll('div[id^="assigned-"]').length === 0) {
+                // Find placeholder inside this container
+                let ph = container.querySelector('div[id^="ph-prod-"]');
+                if (ph) ph.style.display = 'block';
+            }
+        });
     }
 
     function updateCounts() {
-        let workCount = document.getElementById('workList').querySelectorAll('div[id^="assigned-"]').length;
-        document.getElementById('workCount').innerText = workCount + ' Active';
-
         let cutiCount = document.getElementById('cutiList').querySelectorAll('div[id^="assigned-"]').length;
         document.getElementById('cutiCount').innerText = cutiCount + ' Cuti';
     }

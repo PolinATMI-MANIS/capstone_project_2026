@@ -92,4 +92,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')->group(function () {
     });
 
+    Route::post('/waiting-resources/update-status/{id}', [App\Http\Controllers\WaitingResourceController::class, 'updateStatus'])->name('waiting-resources.update');
+    Route::delete('/waiting-resources/{id}', [App\Http\Controllers\WaitingResourceController::class, 'destroy'])->name('waiting-resources.destroy');
+
 });
