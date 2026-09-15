@@ -9,6 +9,5 @@ class ProductionOrder extends Model
 {
     use HasFactory;
 
-    // Mengizinkan semua kolom diisi kecuali ID
     protected $guarded = ['id'];
 }

@@ -39,7 +39,6 @@
         </p>
     </div>
     
-    <!-- User & Admin Bisa Input SPK -->
     @if($role == 'admin' || $role == 'user')
     <button class="btn btn-brand-orange px-4 py-2" data-bs-toggle="modal" data-bs-target="#addSpkModal">
         <i class="fa-solid fa-plus me-2"></i> Buat SPK
@@ -47,7 +46,6 @@
     @endif
 </div>
 
-<!-- KPI Widgets -->
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="card card-custom p-4 d-flex flex-row align-items-center">
@@ -78,7 +76,6 @@
     </div>
 </div>
 
-<!-- Filter & Search Bar -->
 <div class="card card-custom mb-4">
     <div class="card-body p-3">
         <form action="{{ route('produksi.index') }}" method="GET" class="row g-2 align-items-center">
@@ -104,7 +101,6 @@
     </div>
 </div>
 
-<!-- Table Container -->
 <div class="card card-custom">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -137,8 +133,6 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group shadow-sm">
-                                    
-                                    <!-- HAK AKSES ADMIN -->
                                     @if($role == 'admin')
                                         @if($order->status == 'Menunggu Approval Admin')
                                             <form action="{{ route('produksi.approve_spk', $order->id) }}" method="POST" class="d-inline m-0 p-0">
@@ -167,7 +161,6 @@
                                             </form>
                                         @endif
                                         
-                                        <!-- Tombol Request Hapus -->
                                         @if($order->status != 'Menunggu Dihapus')
                                         <form action="{{ route('produksi.request_delete', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                             @csrf 
@@ -178,7 +171,6 @@
                                         @endif
                                     @endif
 
-                                    <!-- HAK AKSES SUPER ADMIN -->
                                     @if($role == 'super_admin' && $order->status == 'Menunggu Dihapus')
                                         <form action="{{ route('produksi.approve_delete', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                             @csrf 
@@ -188,18 +180,12 @@
                                         </form>
                                     @endif
 
-                                    <!-- TOMBOL VIEW DETAIL (Dilihat Semua Role, Menggantikan QR Code) -->
                                     <button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#detailModal{{ $order->id }}" title="Lihat Detail">
                                         <i class="fa-solid fa-eye text-dark"></i>
                                     </button>
                                 </div>
 
-                                <!-- ============================== -->
-                                <!-- AREA MODAL-MODAL TERSEMBUNYI -->
-                                <!-- ============================== -->
-
                                 @if($role == 'admin')
-                                    <!-- Modal QC Awal -->
                                     @if($order->status == 'Menunggu Bahan Baku')
                                     <div class="modal fade text-start" id="checkModal{{ $order->id }}" tabindex="-1">
                                         <div class="modal-dialog modal-dialog-centered">
@@ -255,7 +241,6 @@
                                     </div>
                                     @endif
                                     
-                                    <!-- Modal Final QC & Andon -->
                                     @if($order->status == 'Proses Produksi Berjalan')
                                     <div class="modal fade text-start" id="finalQcModal{{ $order->id }}" tabindex="-1">
                                         <div class="modal-dialog modal-dialog-centered">
@@ -320,7 +305,6 @@
                                     @endif
                                 @endif
 
-                                <!-- Modal View Detail (Dilihat Semua Role, Tanpa QR Code) -->
                                 <div class="modal fade text-start" id="detailModal{{ $order->id }}" tabindex="-1">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
@@ -343,7 +327,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5">
+                            <td colspan="5" class="text-center py-5">
                                 <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-3" style="width: 80px; height: 80px; background-color: #f1f5f9;">
                                     <i class="fa-solid fa-box-open fs-2 text-muted"></i>
                                 </div>
@@ -361,7 +345,6 @@
     {{ $orders->appends(request()->query())->links('pagination::bootstrap-5') }}
 </div>
 
-<!-- Modal Form Tambah SPK (Hanya User & Admin) -->
 @if($role == 'admin' || $role == 'user')
 <div class="modal fade" id="addSpkModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
