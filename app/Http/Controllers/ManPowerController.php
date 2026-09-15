@@ -36,21 +36,26 @@ class ManPowerController extends Controller
             $data['foto'] = $request->file('foto')->store('man-power-photos', 'public');
         }
 
-        // JIKA USER: Masuk ke Approval Request (Menunggu Admin/Super Admin)
-        if (auth()->user()->role === 'user') {
-            ApprovalRequest::create([
-                'user_id'     => auth()->id(),
-                'target_type' => 'ManPower',
-                'target_id'   => 0, // Belum ada ID karena baru mau dibuat
-                'target_name' => $data['nama'],
-                'action_type' => 'create',
-                'payload'     => json_encode($data),
-            ]);
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
 
-            return redirect()->route('man-power.index')->with('success', 'Pengajuan penambahan Man Power telah dikirim ke Admin/Super Admin.');
+        if ($userRole === 'user') {
+            try {
+                ApprovalRequest::create([
+                    'user_id'     => $userId,
+                    'target_type' => 'ManPower',
+                    'target_id'   => 0, 
+                    'target_name' => $data['nama'],
+                    'action_type' => 'create',
+                    'payload'     => json_encode($data),
+                ]);
+                return redirect()->route('man-power.index')->with('success', 'Pengajuan penambahan Man Power telah dikirim.');
+            } catch (\Exception $e) {
+                // PENGAMAN JIKA TABEL BELUM DIBUAT BONIFASIUS
+                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap (Tabel Database belum dibuat oleh tim IT).');
+            }
         }
 
-        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         ManPower::create($data);
         return redirect()->route('man-power.index')->with('success', 'Data Man Power berhasil ditambahkan.');
     }
@@ -75,21 +80,25 @@ class ManPowerController extends Controller
             $data['foto'] = $request->file('foto')->store('man-power-photos', 'public');
         }
 
-        // JIKA USER: Masuk ke Approval Request untuk Update
-        if (auth()->user()->role === 'user') {
-            ApprovalRequest::create([
-                'user_id'     => auth()->id(),
-                'target_type' => 'ManPower',
-                'target_id'   => $manPower->id,
-                'target_name' => $data['nama'],
-                'action_type' => 'update',
-                'payload'     => json_encode($data),
-            ]);
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
 
-            return redirect()->route('man-power.index')->with('success', 'Pengajuan pembaruan data Man Power telah dikirim ke Admin/Super Admin.');
+        if ($userRole === 'user') {
+            try {
+                ApprovalRequest::create([
+                    'user_id'     => $userId,
+                    'target_type' => 'ManPower',
+                    'target_id'   => $manPower->id,
+                    'target_name' => $data['nama'],
+                    'action_type' => 'update',
+                    'payload'     => json_encode($data),
+                ]);
+                return redirect()->route('man-power.index')->with('success', 'Pengajuan pembaruan data dikirim.');
+            } catch (\Exception $e) {
+                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap (Tabel Database belum dibuat oleh tim IT).');
+            }
         }
 
-        // JIKA ADMIN / SUPER ADMIN: Langsung Eksekusi
         if ($request->hasFile('foto') && $manPower->foto && Storage::disk('public')->exists($manPower->foto)) {
             Storage::disk('public')->delete($manPower->foto);
         }
@@ -100,8 +109,10 @@ class ManPowerController extends Controller
 
     public function destroy(Request $request, ManPower $manPower)
     {
-        // SUPER ADMIN: Hapus Permanen Langsung
-        if (auth()->user()->role === 'super_admin') {
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
+
+        if ($userRole === 'super_admin') {
             MachinePower::where('man_power_id', $manPower->id)->update([
                 'status' => 'Standby',
                 'man_power_id' => null
@@ -118,20 +129,27 @@ class ManPowerController extends Controller
             return redirect()->route('man-power.index')->with('success', $msg);
         }
 
-        // ADMIN / USER: Masuk ke Approval Request untuk Delete
-        ApprovalRequest::create([
-            'user_id'     => auth()->id(),
-            'target_type' => 'ManPower',
-            'target_id'   => $manPower->id,
-            'target_name' => $manPower->nama,
-            'action_type' => 'delete',
-        ]);
-        
-        $msg = 'Permintaan hapus telah dikirim ke Super Admin.';
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => $msg]);
+        try {
+            ApprovalRequest::create([
+                'user_id'     => $userId,
+                'target_type' => 'ManPower',
+                'target_id'   => $manPower->id,
+                'target_name' => $manPower->nama,
+                'action_type' => 'delete',
+            ]);
+            
+            $msg = 'Permintaan hapus telah dikirim ke Super Admin.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
+            return redirect()->route('man-power.index')->with('success', $msg);
+        } catch (\Exception $e) {
+            $msg = 'Sistem Approval belum siap (Tabel Database belum dibuat).';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 500);
+            }
+            return redirect()->route('man-power.index')->with('warning', $msg);
         }
-        return redirect()->route('man-power.index')->with('success', $msg);
     }
 
     public function updateStatus(Request $request, $id)
@@ -139,7 +157,9 @@ class ManPowerController extends Controller
         $request->validate(['status' => 'required|in:Idle,Kerja,Cuti']);
         $manPower = ManPower::findOrFail($id);
         
-        if (auth()->user()->role === 'user') {
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+
+        if ($userRole === 'user') {
             return response()->json(['success' => false, 'message' => 'User tidak memiliki izin ubah status langsung.'], 403);
         }
 

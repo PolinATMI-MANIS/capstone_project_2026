@@ -12,14 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['super_admin', 'admin', 'user'])->default('user');
+            // PENGAMAN: Cek dulu apakah kolom 'role' sudah ada atau belum
+            // Jika belum ada, baru dibuat. Jika sudah ada, abaikan.
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('user')->after('password');
+            }
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role');
+            if (Schema::hasColumn('users', 'role')) {
+                $table->dropColumn('role');
+            }
         });
     }
 };
