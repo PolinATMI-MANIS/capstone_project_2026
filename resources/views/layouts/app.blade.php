@@ -182,7 +182,6 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
-        <!-- TAMBAHAN MENU LAPORAN OPERASIONAL -->
         <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
             <i class="fa-solid fa-file-lines"></i> Laporan Operasional
         </a>
@@ -219,11 +218,11 @@
         </div>
     </div>
     
-
     <div class="main-content">
         @yield('content')
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
