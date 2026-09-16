@@ -13,7 +13,7 @@ class DashboardController extends Controller
 
         $totalInventory  = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::count() : 0;
         $totalProduction = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::count() : 0;
-        $totalResources  = class_exists('\App\Models\Resource') ? \App\Models\Resource::count() : 0;
+        $totalResources = class_exists('\App\Models\ManPower') ? \App\Models\ManPower::where('status', 'Idle')->count() : 0;
         $totalOrders     = class_exists('\App\Models\Order') ? \App\Models\Order::count() : 0;
         $totalRnd        = class_exists('\App\Models\Rnd') ? \App\Models\Rnd::count() : 0;
 

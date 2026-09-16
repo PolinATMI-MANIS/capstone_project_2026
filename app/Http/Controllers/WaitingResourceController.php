@@ -38,15 +38,16 @@ class WaitingResourceController extends Controller
         $item->save();
 
         if (!$isReady) {
-            // Ambil ID pekerja yang ada di SPK ini
+            // 1. Ambil ID pekerja yang ada di SPK ini
             $workerIds = \App\Models\ManPower::where('production_order_id', $id)->pluck('id');
 
-            // Lepaskan mesin yang dipakai pekerja tersebut
+            // 2. Kembalikan status mesin yang dipakai pekerja tersebut menjadi 'idle' (DAN lepaskan relasinya)
             \App\Models\MachinePower::whereIn('man_power_id', $workerIds)->update([
+                'status' => 'idle',          // <--- INI KUNCI UTAMANYA AGAR TIDAK TERHITUNG RUNNING
                 'man_power_id' => null
             ]);
 
-            // Kembalikan pekerja ke Idle
+            // 3. Kembalikan pekerja ke Idle dan lepaskan dari SPK
             \App\Models\ManPower::where('production_order_id', $id)->update([
                 'status' => 'Idle',
                 'production_order_id' => null
