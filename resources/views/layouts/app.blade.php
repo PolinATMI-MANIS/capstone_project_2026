@@ -182,6 +182,11 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
+        <!-- TAMBAHAN MENU LAPORAN OPERASIONAL -->
+        <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+            <i class="fa-solid fa-file-lines"></i> Laporan Operasional
+        </a>
+
         <div class="mt-auto px-3 pb-3">
             <div class="p-3 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25">
                 <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
@@ -213,6 +218,7 @@
             </div>
         </div>
     </div>
+    
 
     <div class="main-content">
         @yield('content')

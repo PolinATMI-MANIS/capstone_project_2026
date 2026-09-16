@@ -25,6 +25,7 @@ use App\Http\Controllers\WaitingResourceController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,5 +95,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/waiting-resources/update-status/{id}', [App\Http\Controllers\WaitingResourceController::class, 'updateStatus'])->name('waiting-resources.update');
     Route::delete('/waiting-resources/{id}', [App\Http\Controllers\WaitingResourceController::class, 'destroy'])->name('waiting-resources.destroy');
+
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
 });
