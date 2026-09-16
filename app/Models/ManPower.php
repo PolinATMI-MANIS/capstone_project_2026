@@ -22,5 +22,10 @@ class ManPower extends Model
     {
         return $this->hasMany(MachinePower::class, 'man_power_id');
     }
+
+    public function productionOrder() 
+    {
+        return $this->belongsTo(ProductionOrder::class, 'production_order_id');
+    }
 }
 

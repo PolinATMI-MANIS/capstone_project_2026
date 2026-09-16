@@ -162,6 +162,19 @@ class ManPowerController extends Controller
         
         $manPower->save();
 
+        // TAMBAHAN: Jika pekerja di-return ke Idle atau Cuti, lepaskan ikatan mesinnya secara otomatis
+        if (in_array($request->status, ['Idle', 'Cuti'])) {
+            MachinePower::where('man_power_id', $id)->update([
+                'man_power_id' => null
+            ]);
+            
+            // Opsional: Kosongkan juga production_order_id jika statusnya kembali ke Idle/Cuti total
+            if ($request->status === 'Idle') {
+                $manPower->production_order_id = null;
+                $manPower->save();
+            }
+        }
+
         return response()->json(['success' => true]);
     }
 }

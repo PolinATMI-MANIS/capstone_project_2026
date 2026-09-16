@@ -131,6 +131,7 @@
                     </div>
                 </div>
 
+                <!-- WORK ZONE (UPGRADED CARD) -->
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-success" style="background-color: #f0fdf4 !important;">
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;"><i class="fa-solid fa-industry text-success me-2"></i> WORK ZONE</h5>
@@ -147,12 +148,26 @@
                                     <div>
                                         <span class="badge bg-success text-white mb-1" style="font-size: 0.55rem;">RUNNING</span>
                                         <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;"><i class="fa-solid fa-user me-1 text-primary"></i> {{ $item->operator->nama }}</h6>
-                                        <span class="text-muted d-block" style="font-size: 0.65rem;">
-                                            Mesin: <b>{{ $item->machine_name }}</b> ({{ $item->machine_type }})
-                                            @if($item->start_time) | Mulai Pukul: <b class="text-dark">{{ $item->start_time }}</b> @endif
+                                        <span class="text-muted d-block mt-1" style="font-size: 0.65rem;">
+                                            <i class="fa-solid fa-gears text-secondary me-1"></i> Mesin: <b>{{ $item->machine_name }}</b> ({{ $item->machine_type }})
+                                            @if($item->start_time) <br><i class="fa-solid fa-clock text-warning me-1"></i> Mulai Pukul: <b class="text-dark">{{ $item->start_time }}</b> @endif
                                         </span>
+
+                                        {{-- Informasi Produk / SPK yang Sedang Dikerjakan --}}
+                                        <div class="p-2 rounded-2 bg-light border border-secondary border-opacity-10 mt-2">
+                                            <span class="text-uppercase text-muted d-block" style="font-size: 0.5rem; letter-spacing: 0.5px;">Sedang Mengerjakan Produksi:</span>
+                                            <span class="fw-bold text-primary" style="font-size: 0.75rem;">
+                                                <i class="fa-solid fa-box-open me-1"></i> 
+                                                {{ optional($item->operator->productionOrder)->produk ?? 'Tidak ada SPK aktif' }} 
+                                                @if(optional($item->operator->productionOrder)->no_po)
+                                                    <span class="badge bg-dark bg-opacity-10 text-dark font-monospace ms-1" style="font-size: 0.55rem;">
+                                                        #{{ optional($item->operator->productionOrder)->no_po }}
+                                                    </span>
+                                                @endif
+                                            </span>
+                                        </div>
                                     </div>
-                                    <button onclick="returnMachine('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" title="Selesaikan / Lepas" style="font-size: 0.6rem; background-color: #0b192c;">
+                                    <button onclick="returnMachine('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1 align-self-start" title="Selesaikan / Lepas" style="font-size: 0.6rem; background-color: #0b192c;">
                                         <i class="fa-solid fa-rotate-left"></i> Return
                                     </button>
                                 </div>
@@ -337,7 +352,6 @@
     }
 
     function returnMachine(id) {
-        // Tanpa konfirmasi/notifikasi, langsung eksekusi instan
         fetch(`/machine-power/${id}/update-status`, {
             method: 'PATCH',
             headers: { 

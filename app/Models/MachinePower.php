@@ -26,4 +26,9 @@ class MachinePower extends Model
     {
         return $this->belongsTo(ManPower::class, 'man_power_id');
     }
+
+    public function manPower() 
+    {
+        return $this->belongsTo(ManPower::class, 'man_power_id');
+    }
 }

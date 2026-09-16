@@ -31,7 +31,6 @@
 
     <div class="row">
         
-        <!-- KOLOM KIRI: DIREKTORI ANTREAN PRODUKSI (Gaya Flip Card) -->
         <div class="col-lg-8 border-end border-secondary border-opacity-10 pe-lg-4">
             <h5 class="fw-bold text-dark mb-3" style="font-size: 1rem;"><i class="fa-solid fa-layer-group text-warning me-2"></i> Production Queue List</h5>
             
@@ -39,11 +38,10 @@
                 <div class="row" id="queueContainer">
                     @php
                         $items = $waitingList ?? collect();
-                        $leftItems = $items->filter(function($i) { return $i->status !== 'ready'; });
                     @endphp
 
-                    @forelse ($leftItems as $index => $item)
-                        <div class="col-md-6 mb-4 queue-wrapper" id="item-wrapper-{{ $item->id }}" style="display: block;">
+                    @forelse ($items as $index => $item)
+                        <div class="col-md-6 mb-4 queue-wrapper" id="item-wrapper-{{ $item->id }}" style="display: {{ $item->status === 'ready' ? 'none' : 'block' }};">
                             
                             <div style="position: relative; width: 100%; margin-top: 25px;">
                                 
@@ -129,11 +127,9 @@
             </div>
         </div>
 
-        <!-- KOLOM KANAN: PANEL KONTROL -->
         <div class="col-lg-4 ps-lg-4 mt-4 mt-lg-0">
             <div class="sticky-top d-flex flex-column gap-4" style="top: 20px;">
                 
-                <!-- CARD 1: READY TO PROCESS (ZONE DROP + RETURN) -->
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-dashed" 
                      id="dropZone"
                      ondragover="handleDragOver(event)"
@@ -172,7 +168,6 @@
                     </div>
                 </div>
 
-                <!-- CARD 2: PINTU DELETE (BERDASARKAN ROLE) -->
                 @if(auth()->check() && auth()->user()->role !== 'user')
                 <div class="px-3 py-3 rounded-pill shadow-sm border border-2 border-danger text-center d-flex align-items-center justify-content-center gap-2" 
                      id="deleteZone"

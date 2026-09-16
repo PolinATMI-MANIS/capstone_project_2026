@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ProductionOrder;
+use App\Models\ManPower;
 
 class WaitingResourceController extends Controller
 {
@@ -32,8 +33,25 @@ class WaitingResourceController extends Controller
     {
         $item = ProductionOrder::findOrFail($id);
         
-        $item->status = $request->status === 'ready' ? 'ready' : 'Menunggu Bahan Baku';
+        $isReady = $request->status === 'ready';
+        $item->status = $isReady ? 'ready' : 'Menunggu Bahan Baku';
         $item->save();
+
+        if (!$isReady) {
+            // Ambil ID pekerja yang ada di SPK ini
+            $workerIds = \App\Models\ManPower::where('production_order_id', $id)->pluck('id');
+
+            // Lepaskan mesin yang dipakai pekerja tersebut
+            \App\Models\MachinePower::whereIn('man_power_id', $workerIds)->update([
+                'man_power_id' => null
+            ]);
+
+            // Kembalikan pekerja ke Idle
+            \App\Models\ManPower::where('production_order_id', $id)->update([
+                'status' => 'Idle',
+                'production_order_id' => null
+            ]);
+        }
 
         return response()->json(['success' => true]);
     }
@@ -77,4 +95,5 @@ class WaitingResourceController extends Controller
 
         return response()->json(['success' => false, 'message' => 'Tabel Produksi belum tersedia.'], 500);
     }
+    
 }
