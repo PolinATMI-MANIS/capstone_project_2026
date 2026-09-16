@@ -8,33 +8,36 @@ use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         // 1. Akun Super Admin
-        User::create([
-            'name'     => 'Super Admin',
-            'email'    => 'superadmin@capstone.com',
-            'password' => Hash::make('password'),
-            'role'     => 'superadmin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'superadmin@capstone.com'],
+            [
+                'name'     => 'Super Admin Capstone', 
+                'password' => Hash::make('password'), 
+                'role'     => 'super_admin'
+            ]
+        );
 
         // 2. Akun Admin
-        User::create([
-            'name'     => 'Admin R&D',
-            'email'    => 'admin@capstone.com',
-            'password' => Hash::make('password'),
-            'role'     => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@capstone.com'],
+            [
+                'name'     => 'Admin Production', 
+                'password' => Hash::make('password'), 
+                'role'     => 'admin'
+            ]
+        );
 
         // 3. Akun User Biasa
-        User::create([
-            'name'     => 'User Pengaju',
-            'email'    => 'user@capstone.com',
-            'password' => Hash::make('password'),
-            'role'     => 'user',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'user@capstone.com'],
+            [
+                'name'     => 'Operator User', 
+                'password' => Hash::make('password'), 
+                'role'     => 'user'
+            ]
+        );
     }
 }
