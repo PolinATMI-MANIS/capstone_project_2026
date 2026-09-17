@@ -9,11 +9,14 @@ class WaitingResource extends Model
 {
     use HasFactory;
 
+    protected $table = 'production_orders'; // Arahkan ke tabel asli database
+
     protected $fillable = [
-        'production_code',
-        'product_name',
-        'quantity',
+        'no_po',
+        'produk',
+        'jumlah_produksi',
         'status',
-        'notes',
+        'keterangan',
+        'target_selesai',
     ];
 }

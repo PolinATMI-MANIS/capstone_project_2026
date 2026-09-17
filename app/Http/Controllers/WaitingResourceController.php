@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ProductionOrder;
 use App\Models\ManPower;
+use App\Models\MachinePower;
 
 class WaitingResourceController extends Controller
 {
     public function index()
     {
         $rawList = collect();
-        if (class_exists('\App\Models\ProductionOrder')) {
+        if (class_exists(ProductionOrder::class)) {
             $rawList = ProductionOrder::whereIn('status', ['Menunggu Bahan Baku', 'Proses Produksi Berjalan', 'ready'])->latest()->get();
         }
 
@@ -31,70 +32,77 @@ class WaitingResourceController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $item = ProductionOrder::findOrFail($id);
-        
-        $isReady = $request->status === 'ready';
-        $item->status = $isReady ? 'ready' : 'Menunggu Bahan Baku';
-        $item->save();
+        try {
+            $item = ProductionOrder::findOrFail($id);
+            
+            $statusInput = $request->input('status') ?? $request->json('status') ?? 'Menunggu Bahan Baku';
+            $lowerStatus = strtolower(trim($statusInput));
+            
+            if (in_array($lowerStatus, ['ready', 'ready_to_process', 'siap'])) {
+                $newStatus = 'ready';
+            } elseif (in_array($lowerStatus, ['running', 'proses', 'proses produksi berjalan'])) {
+                $newStatus = 'Proses Produksi Berjalan';
+            } else {
+                $newStatus = 'Menunggu Bahan Baku';
+            }
 
-        if (!$isReady) {
-            // 1. Ambil ID pekerja yang ada di SPK ini
-            $workerIds = \App\Models\ManPower::where('production_order_id', $id)->pluck('id');
+            $item->status = $newStatus;
+            $item->save();
 
-            // 2. Kembalikan status mesin yang dipakai pekerja tersebut menjadi 'idle' (DAN lepaskan relasinya)
-            \App\Models\MachinePower::whereIn('man_power_id', $workerIds)->update([
-                'status' => 'idle',          // <--- INI KUNCI UTAMANYA AGAR TIDAK TERHITUNG RUNNING
-                'man_power_id' => null
+            // KUNCI UTAMA SINKRONISASI REAL-TIME:
+            // JIKA SPK DI-RETURN KE "MENUNGGU BAHAN BAKU" (Keluar dari Ready/Work Zone)
+            if ($newStatus !== 'ready' && $newStatus !== 'Proses Produksi Berjalan') {
+                
+                // 1. Ambil semua pekerja yang statusnya sedang 'Kerja' tapi tidak terikat aktif, 
+                // atau lepaskan semua worker yang statusnya dikembalikan ke Idle
+                $workers = ManPower::where('status', 'Kerja')->get();
+                
+                foreach ($workers as $worker) {
+                    // Cari mesin apa yang sedang dipegang oleh worker ini
+                    $machine = MachinePower::where('man_power_id', $worker->id)->first();
+                    
+                    if ($machine) {
+                        // Paksa mesin balik ke Standby dan putuskan relasinya
+                        $machine->update([
+                            'status'       => 'Standby',
+                            'man_power_id' => null,
+                            'start_time'   => null
+                        ]);
+                    }
+
+                    // Kembalikan pekerja ke status Idle
+                    $worker->update(['status' => 'Idle']);
+                }
+            }
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Status berhasil diperbarui ke ' . $newStatus,
+                'status'  => $newStatus
             ]);
-
-            // 3. Kembalikan pekerja ke Idle dan lepaskan dari SPK
-            \App\Models\ManPower::where('production_order_id', $id)->update([
-                'status' => 'Idle',
-                'production_order_id' => null
-            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui status: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => true]);
     }
 
     public function destroy($id)
     {
-        $item = ProductionOrder::findOrFail($id);
-        $item->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data antrean produksi berhasil dihapus.'
-        ]);
-    }
-
-    public function apiStore(Request $request)
-    {
-        $validated = $request->validate([
-            'production_code' => 'required|string',
-            'product_name' => 'required|string',
-            'quantity' => 'required|integer',
-            'notes' => 'nullable|string',
-        ]);
-
-        if (class_exists('\App\Models\ProductionOrder')) {
-            $waiting = ProductionOrder::create([
-                'no_po'           => $validated['production_code'],
-                'produk'          => $validated['product_name'],
-                'jumlah_produksi' => $validated['quantity'],
-                'keterangan'      => $validated['notes'],
-                'target_selesai'  => now()->addDays(7),
-                'status'          => 'Menunggu Bahan Baku'
-            ]);
+        try {
+            $item = ProductionOrder::findOrFail($id);
+            $item->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data produksi berhasil disinkronkan ke Resources!',
-                'data' => $waiting
-            ], 201);
+                'message' => 'Data antrean produksi berhasil dihapus.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Tabel Produksi belum tersedia.'], 500);
     }
-    
 }

@@ -11,12 +11,32 @@ class MachinePowerController extends Controller
 {
     public function index()
     {
-        $machinePowers = MachinePower::with('operator')->get();
-        
+        $machinePowers = MachinePower::all();
+
+        // AUTO-HEALING BUG: MESIN OTOMATIS IDLE JIKA SPK / PEKERJA DI-RETURN
+        foreach ($machinePowers as $machine) {
+            if ($machine->status === 'Running' && $machine->man_power_id) {
+                $pekerja = ManPower::find($machine->man_power_id);
+                
+                if (!$pekerja || in_array($pekerja->status, ['Idle', 'Cuti'])) {
+                    $machine->update([
+                        'status'       => 'Standby',
+                        'man_power_id' => null,
+                        'start_time'   => null
+                    ]);
+                }
+            }
+        }
+
+        $machinePowers = MachinePower::all();
+
+        $assignedOperatorIds = $machinePowers->where('status', 'Running')
+            ->where('man_power_id', '!=', null)
+            ->pluck('man_power_id')
+            ->toArray();
+
         $waitingOperators = ManPower::where('status', 'Kerja')
-            ->whereDoesntHave('machines', function($query) {
-                $query->where('status', 'Running');
-            })
+            ->whereNotIn('id', $assignedOperatorIds)
             ->get();
 
         return view('machine-power.index', compact('machinePowers', 'waitingOperators'));
@@ -32,22 +52,28 @@ class MachinePowerController extends Controller
         $request->validate([
             'machine_name' => 'required|string|max:255',
             'machine_type' => 'required|string|max:255',
-            'status'       => 'required|in:Standby,Running,Breakdown',
+            'status'       => 'required|in:Standby,Running,Maintenance,Idle',
         ]);
 
         $data = $request->except(['_token']);
 
-        if (auth()->user()->role === 'user') {
-            ApprovalRequest::create([
-                'user_id'     => auth()->id(),
-                'target_type' => 'MachinePower',
-                'target_id'   => 0,
-                'target_name' => $data['machine_name'],
-                'action_type' => 'create',
-                'payload'     => json_encode($data),
-            ]);
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
 
-            return redirect()->route('machine-power.index')->with('success', 'Pengajuan penambahan Machine Power telah dikirim ke Admin/Super Admin.');
+        if ($userRole === 'user') {
+            try {
+                ApprovalRequest::create([
+                    'user_id'     => $userId,
+                    'target_type' => 'MachinePower',
+                    'target_id'   => 0,
+                    'target_name' => $data['machine_name'],
+                    'action_type' => 'create',
+                    'payload'     => json_encode($data),
+                ]);
+                return redirect()->route('machine-power.index')->with('success', 'Pengajuan penambahan Machine Power telah dikirim.');
+            } catch (\Exception $e) {
+                return redirect()->route('machine-power.index')->with('warning', 'Sistem Approval belum siap.');
+            }
         }
 
         MachinePower::create($data);
@@ -64,33 +90,88 @@ class MachinePowerController extends Controller
         $request->validate([
             'machine_name' => 'required|string|max:255',
             'machine_type' => 'required|string|max:255',
-            'status'       => 'required|in:Standby,Running,Breakdown',
+            'status'       => 'required|in:Standby,Running,Maintenance,Idle',
         ]);
 
         $data = $request->except(['_token', '_method']);
 
-        if (auth()->user()->role === 'user') {
-            ApprovalRequest::create([
-                'user_id'     => auth()->id(),
-                'target_type' => 'MachinePower',
-                'target_id'   => $machinePower->id,
-                'target_name' => $data['machine_name'],
-                'action_type' => 'update',
-                'payload'     => json_encode($data),
-            ]);
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
 
-            return redirect()->route('machine-power.index')->with('success', 'Pengajuan pembaruan data Machine Power telah dikirim ke Admin/Super Admin.');
+        if ($userRole === 'user') {
+            try {
+                ApprovalRequest::create([
+                    'user_id'     => $userId,
+                    'target_type' => 'MachinePower',
+                    'target_id'   => $machinePower->id,
+                    'target_name' => $data['machine_name'],
+                    'action_type' => 'update',
+                    'payload'     => json_encode($data),
+                ]);
+                return redirect()->route('machine-power.index')->with('success', 'Pengajuan pembaruan data mesin dikirim.');
+            } catch (\Exception $e) {
+                return redirect()->route('machine-power.index')->with('warning', 'Sistem Approval belum siap.');
+            }
         }
 
         $machinePower->update($data);
         return redirect()->route('machine-power.index')->with('success', 'Data Machine Power berhasil diperbarui.');
     }
 
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $machine = MachinePower::findOrFail($id);
+            $newStatus = $request->input('status', 'Standby');
+            
+            $machine->status = $newStatus;
+
+            if ($request->has('man_power_id')) {
+                $machine->man_power_id = $request->input('man_power_id');
+            }
+
+            if ($request->has('start_time')) {
+                $machine->start_time = $request->input('start_time');
+            }
+
+            $machine->save();
+
+            // SINKRONISASI TOTAL: JIKA MESIN DI-RETURN / STANDBY / BREAKDOWN, LEPASKAN OPERATOR
+            $normalizedStatus = strtolower(trim($newStatus));
+            if (in_array($normalizedStatus, ['standby', 'idle', 'maintenance', 'breakdown'])) {
+                if ($machine->man_power_id) {
+                    $operator = ManPower::find($machine->man_power_id);
+                    if ($operator) {
+                        $operator->update(['status' => 'Idle']);
+                    }
+                }
+
+                $machine->update([
+                    'man_power_id' => null,
+                    'start_time'   => null
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status mesin berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui status mesin: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function destroy(Request $request, MachinePower $machinePower)
     {
-        if (auth()->user()->role === 'super_admin') {
+        $userRole = auth()->check() ? auth()->user()->role : 'user';
+        $userId   = auth()->check() ? auth()->id() : 1;
+
+        if ($userRole === 'super_admin') {
             $machinePower->delete();
-            $msg = 'Data Machine Power berhasil dihapus permanen.';
+            $msg = 'Data mesin berhasil dihapus permanen.';
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['success' => true, 'message' => $msg]);
@@ -98,50 +179,26 @@ class MachinePowerController extends Controller
             return redirect()->route('machine-power.index')->with('success', $msg);
         }
 
-        ApprovalRequest::create([
-            'user_id'     => auth()->id(),
-            'target_type' => 'MachinePower',
-            'target_id'   => $machinePower->id,
-            'target_name' => $machinePower->machine_name,
-            'action_type' => 'delete',
-        ]);
-        
-        $msg = 'Permintaan hapus mesin telah dikirim ke Super Admin.';
-        if ($request->wantsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'message' => $msg]);
+        try {
+            ApprovalRequest::create([
+                'user_id'     => $userId,
+                'target_type' => 'MachinePower',
+                'target_id'   => $machinePower->id,
+                'target_name' => $machinePower->machine_name,
+                'action_type' => 'delete',
+            ]);
+            
+            $msg = 'Permintaan hapus mesin telah dikirim ke Super Admin.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
+            return redirect()->route('machine-power.index')->with('success', $msg);
+        } catch (\Exception $e) {
+            $msg = 'Sistem Approval belum siap.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $msg], 500);
+            }
+            return redirect()->route('machine-power.index')->with('warning', $msg);
         }
-        return redirect()->route('machine-power.index')->with('success', $msg);
-    }
-
-    public function updateStatus(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:Standby,Running,Breakdown,Idle,Kerja,Cuti'
-        ]);
-        
-        if (auth()->user()->role === 'user') {
-            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
-        }
-
-        $machinePower = MachinePower::findOrFail($id);
-        
-        $updateData = ['status' => $request->status];
-
-        if ($request->has('man_power_id')) {
-            $updateData['man_power_id'] = $request->man_power_id;
-        }
-
-        if ($request->has('start_time')) {
-            $updateData['start_time'] = $request->start_time;
-        }
-
-        if ($request->status === 'Standby') {
-            $updateData['man_power_id'] = null;
-            $updateData['start_time'] = null;
-        }
-
-        $machinePower->update($updateData);
-
-        return response()->json(['success' => true, 'message' => 'Status dan jam mulai mesin diperbarui.']);
     }
 }

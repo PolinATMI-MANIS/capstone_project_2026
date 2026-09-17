@@ -42,26 +42,26 @@ Route::post('/produksi/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'
 Route::post('/produksi/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('produksi.request_delete');
 Route::post('/produksi/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('produksi.approve_delete');
 
-// Rute Man Power
+// Rute Man Power (URUTAN DIPERBAIKI: /update-status DI ATAS PARAMETER)
 Route::get('/man-power', [ManPowerController::class, 'index'])->name('man-power.index');
 Route::get('/man-power/create', [ManPowerController::class, 'create'])->name('man-power.create');
 Route::post('/man-power', [ManPowerController::class, 'store'])->name('man-power.store');
+Route::patch('/man-power/{id}/update-status', [ManPowerController::class, 'updateStatus']);
 Route::get('/man-power/{manPower}/edit', [ManPowerController::class, 'edit'])->name('man-power.edit');
 Route::put('/man-power/{manPower}', [ManPowerController::class, 'update'])->name('man-power.update');
 Route::patch('/man-power/{manPower}', [ManPowerController::class, 'update']);
 Route::post('/man-power/{manPower}/update-process', [ManPowerController::class, 'update'])->name('man-power.update-process');
 Route::delete('/man-power/{manPower}', [ManPowerController::class, 'destroy'])->name('man-power.destroy');
-Route::patch('/man-power/{id}/update-status', [ManPowerController::class, 'updateStatus']);
 
-// Rute Machine Power
+// Rute Machine Power (URUTAN DIPERBAIKI: /update-status DI ATAS PARAMETER)
 Route::get('/machine-power', [MachinePowerController::class, 'index'])->name('machine-power.index');
 Route::get('/machine-power/create', [MachinePowerController::class, 'create'])->name('machine-power.create');
 Route::post('/machine-power', [MachinePowerController::class, 'store'])->name('machine-power.store');
+Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class, 'updateStatus'])->name('machine-power.update-status');
 Route::get('/machine-power/{machinePower}/edit', [MachinePowerController::class, 'edit'])->name('machine-power.edit');
 Route::put('/machine-power/{machinePower}', [MachinePowerController::class, 'update'])->name('machine-power.update');
 Route::patch('/machine-power/{machinePower}', [MachinePowerController::class, 'update']);
 Route::delete('/machine-power/{machinePower}', [MachinePowerController::class, 'destroy'])->name('machine-power.destroy');
-Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class, 'updateStatus'])->name('machine-power.update-status');
 
 // Rute Waiting for Resources
 Route::get('/waiting-for-resources', [WaitingResourceController::class, 'index'])->name('waiting-resources.index');
@@ -94,9 +94,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
     // ROUTE: Eksekusi Approve / Reject untuk ManPower & MachinePower dari Dashboard
-    Route::post('/approval-request/{id}/process', function (\Illuminate\Http\Request $request, $id) {
+    Route::match(['get', 'post'], '/approval-request/{id}/process', function (\Illuminate\Http\Request $request, $id) {
         $approval = ApprovalRequest::findOrFail($id);
-        $action = $request->input('action'); // 'approve' atau 'reject'
+        $action = $request->input('action'); 
 
         if ($action === 'approve') {
             $payload = json_decode($approval->payload, true);
@@ -128,7 +128,6 @@ Route::middleware('auth')->group(function () {
             $approval->delete();
             return back()->with('success', 'Pengajuan berhasil disetujui!');
         } else {
-            // Jika reject, cukup hapus requestnya
             $approval->delete();
             return back()->with('warning', 'Pengajuan ditolak.');
         }

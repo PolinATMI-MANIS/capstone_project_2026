@@ -102,24 +102,8 @@
             <div class="sticky-top d-flex flex-column gap-4" style="top: 20px;">
                 
                 @php
-                    // MENGAMBIL DATA & MEMFILTER STATUS SPK BERDASARKAN DATABASE
                     $readyProductions = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::where('status', 'ready')->get() : collect();
-                    
-                    // Kumpulkan ID SPK yang sudah ada pekerja berstatus 'Kerja' di dalamnya
-                    $activeProdIds = [];
-                    foreach($manPowers as $mp) {
-                        if (trim(ucfirst(strtolower($mp->status ?? ''))) === 'Kerja' && !empty($mp->production_order_id)) {
-                            $activeProdIds[] = $mp->production_order_id;
-                        }
-                    }
-                    $activeProdIds = array_unique($activeProdIds);
-
-                    // Pisahkan mana SPK yang Kosong (Idle) dan SPK yang Aktif (punya pekerja)
-                    $idleProductions = $readyProductions->filter(fn($p) => !in_array($p->id, $activeProdIds));
-                    $activeProductions = $readyProductions->filter(fn($p) => in_array($p->id, $activeProdIds));
-                    
-                    // Filter Pekerja General (Yang kerja tapi ga punya ID SPK karena bug sebelumnya)
-                    $generalWorkers = $manPowers->filter(fn($w) => trim(ucfirst(strtolower($w->status ?? ''))) === 'Kerja' && empty($w->production_order_id));
+                    $generalWorkers = $manPowers->filter(fn($w) => trim(ucfirst(strtolower($w->status ?? ''))) === 'Kerja');
                 @endphp
 
                 <!-- CARD 1: PRODUCTION ASSIGNMENT (IDLE SPK) -->
@@ -130,8 +114,7 @@
                     <p class="text-muted small mb-3" style="font-size: 0.75rem;">Barang yang siap diproduksi. <b>Drop pekerja ke SPK untuk memindahkan SPK ke Work Zone.</b></p>
 
                     <div id="readySpkContainer" style="min-height: 50px;">
-                        @foreach($idleProductions as $prod)
-                            <!-- Box SPK Kosong -->
+                        @foreach($readyProductions as $prod)
                             <div class="p-3 mb-3 rounded-4 bg-white shadow-sm border border-2 border-dashed spk-box" 
                                  id="spk-{{ $prod->id }}"
                                  ondragover="handleSpkDragOver(event, 'spk-{{ $prod->id }}')"
@@ -143,7 +126,6 @@
                                     <span class="badge bg-dark bg-opacity-10 text-dark font-monospace" style="font-size: 0.55rem;">#{{ $prod->no_po }}</span>
                                 </div>
                                 <div class="mb-2"><span class="text-muted d-block" style="font-size: 0.6rem;">Target Qty: <b>{{ $prod->jumlah_produksi }} Pcs</b></span></div>
-                                <!-- Container Pekerja (Masih Kosong) -->
                                 <div id="spk-workers-{{ $prod->id }}" class="d-flex flex-column gap-2 spk-workers-list">
                                     <div id="spk-ph-{{ $prod->id }}" class="text-center py-2 text-primary opacity-75 placeholder-worker" style="font-size: 0.7rem; background-color: #e7f1ff; border-radius: 6px;">
                                         <i class="fa-solid fa-arrow-down me-1"></i> Drop Man Power Here
@@ -151,10 +133,6 @@
                                 </div>
                             </div>
                         @endforeach
-                        <div id="emptySpkState" class="text-center py-4 border rounded-3 bg-light" style="display: {{ $idleProductions->count() > 0 ? 'none' : 'block' }}">
-                            <i class="fa-solid fa-box-open text-muted mb-2 fs-4 opacity-50"></i>
-                            <p class="text-muted small mb-0" style="font-size: 0.75rem;">Semua produksi sudah berjalan atau kosong.</p>
-                        </div>
                     </div>
                 </div>
 
@@ -165,63 +143,20 @@
                         <span class="badge text-white px-2 py-1" id="workCount" style="background-color: #ff6600;">Active</span>
                     </div>
                     
-                    <!-- Tempat SPK Aktif (Otomatis Tampil Saat Refresh Jika Ada Pekerjanya) -->
                     <div id="activeSpkContainer" class="d-flex flex-column mb-3" style="min-height: 60px;">
-                        @foreach($activeProductions as $prod)
-                            <!-- Box SPK Aktif -->
-                            <div class="p-3 mb-3 rounded-4 shadow-sm border border-2 border-dashed spk-box" 
-                                 id="spk-{{ $prod->id }}"
-                                 ondragover="handleSpkDragOver(event, 'spk-{{ $prod->id }}')"
-                                 ondragleave="handleSpkDragLeave(event, 'spk-{{ $prod->id }}')"
-                                 ondrop="handleSpkDrop(event, '{{ $prod->id }}')"
-                                 style="border-color: #ff6600 !important; background-color: #fffdf5 !important; transition: 0.3s; cursor: default;">
-                                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
-                                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $prod->produk }}</h6>
-                                    <span class="badge bg-dark bg-opacity-10 text-dark font-monospace" style="font-size: 0.55rem;">#{{ $prod->no_po }}</span>
-                                </div>
-                                <div class="mb-2"><span class="text-muted d-block" style="font-size: 0.6rem;">Target Qty: <b>{{ $prod->jumlah_produksi }} Pcs</b></span></div>
-                                <!-- List Pekerja dalam SPK Ini -->
-                                <div id="spk-workers-{{ $prod->id }}" class="d-flex flex-column gap-2 spk-workers-list">
-                                    @php
-                                        $workersInThisSpk = $manPowers->filter(fn($w) => trim(ucfirst(strtolower($w->status ?? ''))) === 'Kerja' && $w->production_order_id == $prod->id);
-                                    @endphp
-                                    @foreach($workersInThisSpk as $worker)
-                                        <div id="spk-worker-{{ $worker->id }}" class="p-2 bg-light rounded-3 border border-primary border-opacity-25 d-flex justify-content-between align-items-center mt-1 active-spk-worker">
-                                            <div>
-                                                <span class="badge font-monospace mb-1" style="font-size: 0.5rem; background-color: #0d6efd; color: white;">#{{ str_pad($worker->id, 3, '0', STR_PAD_LEFT) }}</span>
-                                                <h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">{{ $worker->nama }}</h6>
-                                                <span class="text-muted" style="font-size: 0.6rem;">{{ $worker->posisi }}</span>
-                                            </div>
-                                            @if(auth()->check() && auth()->user()->role !== 'user')
-                                            <button onclick="returnWorkerFromSpk('{{ $worker->id }}', '{{ $prod->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.55rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i> Return</button>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                    <div id="spk-ph-{{ $prod->id }}" class="text-center py-2 text-primary opacity-75 placeholder-worker" style="display: none; font-size: 0.7rem; background-color: #e7f1ff; border-radius: 6px;">
-                                        <i class="fa-solid fa-arrow-down me-1"></i> Drop Man Power Here
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                        <div id="activeSpkPlaceholder" class="text-center py-4 border border-warning border-opacity-25 rounded-3" style="display: {{ $activeProductions->count() > 0 ? 'none' : 'block' }}; background-color: #fffaf0;">
-                            <i class="fa-solid fa-gears text-warning mb-2 fs-4 opacity-50"></i>
-                            <p class="text-muted small mb-0" style="font-size: 0.75rem;">Belum ada produksi berjalan.</p>
-                        </div>
+                        <!-- SPK Aktif akan dirender otomatis oleh JavaScript dari LocalStorage -->
                     </div>
 
-                    <!-- Pintu Belakang: Untuk pekerja berstatus Kerja di DB yg belum tersambung ke SPK mana pun -->
-                    <div class="p-3 border rounded-3" id="generalWorkZone" ondragover="handleGeneralDragOver(event)" ondragleave="handleGeneralDragLeave(event)" ondrop="handleGeneralDrop(event)" style="background-color: white;">
+                    <div id="activeSpkPlaceholder" class="text-center py-4 border border-warning border-opacity-25 rounded-3" style="background-color: #fffaf0;">
+                        <i class="fa-solid fa-gears text-warning mb-2 fs-4 opacity-50"></i>
+                        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Belum ada produksi berjalan.</p>
+                    </div>
+
+                    <!-- General Work -->
+                    <div class="p-3 border rounded-3 mt-3" id="generalWorkZone" ondragover="handleGeneralDragOver(event)" ondragleave="handleGeneralDragLeave(event)" ondrop="handleGeneralDrop(event)" style="background-color: white;">
                         <h6 class="fw-bold text-dark mb-2" style="font-size: 0.75rem;">General Work (Tanpa SPK)</h6>
                         <div id="generalWorkList" class="d-flex flex-column gap-2">
-                            @foreach ($generalWorkers as $item)
-                                <div id="gen-assigned-{{ $item->id }}" class="p-2 bg-light rounded-3 shadow-sm border border-warning border-opacity-25 d-flex justify-content-between align-items-center gen-worker-item">
-                                    <div><span class="badge text-white font-monospace mb-1" style="font-size: 0.5rem; background-color: #ff6600;">#{{ str_pad($item->id, 3, '0', STR_PAD_LEFT) }}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">{{ $item->nama }}</h6></div>
-                                    @if(auth()->check() && auth()->user()->role !== 'user')
-                                    <button onclick="returnGeneralWorker('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-1 py-1" style="font-size: 0.55rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i></button>
-                                    @endif
-                                </div>
-                            @endforeach
-                            <div id="genWorkPlaceholder" class="text-center py-2 text-muted opacity-50 gen-placeholder" style="display: {{ $generalWorkers->count() > 0 ? 'none' : 'block' }}; font-size: 0.65rem;">
+                            <div id="genWorkPlaceholder" class="text-center py-2 text-muted opacity-50 gen-placeholder" style="font-size: 0.65rem;">
                                 Drop ke sini untuk General Work
                             </div>
                         </div>
@@ -236,19 +171,7 @@
                     </div>
                     
                     <div id="cutiList" class="d-flex flex-column gap-2">
-                        @php $hasCuti = false; @endphp
-                        @foreach ($manPowers as $item)
-                            @if(trim(ucfirst(strtolower($item->status ?? ''))) === 'Cuti')
-                                @php $hasCuti = true; @endphp
-                                <div id="cuti-assigned-{{ $item->id }}" class="p-2.5 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center cuti-item">
-                                    <div><span class="badge bg-secondary text-white font-monospace mb-1" style="font-size: 0.55rem;">#{{ str_pad($item->id, 3, '0', STR_PAD_LEFT) }}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">{{ $item->nama }}</h6><span class="text-muted" style="font-size: 0.65rem;">{{ $item->posisi }}</span></div>
-                                    @if(auth()->check() && auth()->user()->role !== 'user')
-                                    <button onclick="returnCutiWorker('{{ $item->id }}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.6rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i> Return</button>
-                                    @endif
-                                </div>
-                            @endif
-                        @endforeach
-                        <div id="cutiPlaceholder" class="text-center py-3 text-muted opacity-50 cuti-ph" style="display: {{ $hasCuti ? 'none' : 'block' }}; font-size: 0.8rem;">Kosong (Drop pekerja cuti ke sini)</div>
+                        <div id="cutiPlaceholder" class="text-center py-3 text-muted opacity-50 cuti-ph" style="font-size: 0.8rem;">Kosong (Drop pekerja cuti ke sini)</div>
                     </div>
                 </div>
 
@@ -265,7 +188,12 @@
 </div>
 
 <script>
+    // Data mentah pekerja dari database PHP ke JS
+    const allWorkers = @json($manPowers);
+
     document.addEventListener("DOMContentLoaded", function() {
+        validateAndCleanStorage();
+        restoreStateFromStorage();
         checkAllPlaceholders();
     });
 
@@ -280,62 +208,72 @@
         e.dataTransfer.setData('text/plain', JSON.stringify(draggedData));
     }
 
-    // ==== SPK DROP (Memasukkan production_order_id ke Backend) ====
     function handleSpkDragOver(e, spkId) {
         e.preventDefault(); 
-        document.getElementById(spkId).style.backgroundColor = '#e7f1ff'; 
-        document.getElementById(spkId).style.transform = 'scale(1.02)';
+        let el = document.getElementById(spkId);
+        if(el) { el.style.backgroundColor = '#e7f1ff'; el.style.transform = 'scale(1.02)'; }
     }
     function handleSpkDragLeave(e, spkId) {
-        document.getElementById(spkId).style.backgroundColor = document.getElementById(spkId).parentElement.id === 'readySpkContainer' ? '#ffffff' : '#fffdf5';
-        document.getElementById(spkId).style.transform = 'scale(1)';
+        let el = document.getElementById(spkId);
+        if(el) {
+            el.style.backgroundColor = el.parentElement.classList.contains('readySpkContainer') ? '#ffffff' : '#fffdf5';
+            el.style.transform = 'scale(1)';
+        }
     }
 
     function handleSpkDrop(e, prodId) {
         e.preventDefault();
         let spkBox = document.getElementById('spk-' + prodId);
-        spkBox.style.transform = 'scale(1)';
+        if(spkBox) spkBox.style.transform = 'scale(1)';
 
         let rawData = e.dataTransfer.getData('text/plain');
         if (!rawData) return;
         let worker = JSON.parse(rawData);
 
-        if (document.getElementById('spk-worker-' + worker.id)) return;
+        saveAssignment(worker.id, 'spk', prodId);
 
-        // DI SINI KITA KIRIM PRODID-NYA KE BACKEND
-        updateWorkerStatusInDatabase(worker.id, 'Kerja', prodId, function() {
-            let leftCard = document.getElementById('worker-' + worker.id);
-            if (leftCard) leftCard.style.display = 'none';
-
-            let listContainer = document.getElementById('spk-workers-' + prodId);
-            let cardItem = document.createElement('div');
-            cardItem.id = 'spk-worker-' + worker.id;
-            cardItem.className = 'p-2 bg-light rounded-3 border border-primary border-opacity-25 d-flex justify-content-between align-items-center mt-1 active-spk-worker';
-            cardItem.innerHTML = `
-                <div>
-                    <span class="badge font-monospace mb-1" style="font-size: 0.5rem; background-color: #0d6efd; color: white;">#${worker.id.toString().padStart(3, '0')}</span>
-                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">${worker.nama}</h6>
-                    <span class="text-muted" style="font-size: 0.6rem;">${worker.posisi}</span>
-                </div>
-                <button onclick="returnWorkerFromSpk('${worker.id}', '${prodId}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.55rem; background-color: #0b192c;">
-                    <i class="fa-solid fa-rotate-left"></i> Return
-                </button>
-            `;
-            listContainer.appendChild(cardItem);
-
-            // Geser kotaknya ke bawah (Work Zone)
-            if (spkBox.parentElement.id !== 'activeSpkContainer') {
-                document.getElementById('activeSpkContainer').appendChild(spkBox);
-                spkBox.style.borderColor = '#ff6600'; 
-                spkBox.style.backgroundColor = '#fffdf5';
-            }
+        updateWorkerStatusInDatabase(worker.id, 'Kerja', function() {
+            renderWorkerToSpkUI(worker, prodId);
             checkAllPlaceholders();
         });
     }
 
+    function renderWorkerToSpkUI(worker, prodId) {
+        let leftCard = document.getElementById('worker-' + worker.id);
+        if (leftCard) leftCard.style.display = 'none';
+
+        let spkBox = document.getElementById('spk-' + prodId);
+        let activeContainer = document.getElementById('activeSpkContainer');
+        if (spkBox && spkBox.parentElement !== activeContainer) {
+            activeContainer.appendChild(spkBox);
+            spkBox.style.borderColor = '#ff6600'; 
+            spkBox.style.backgroundColor = '#fffdf5';
+        }
+
+        let listContainer = document.getElementById('spk-workers-' + prodId);
+        if (!listContainer) return;
+
+        if (document.getElementById('spk-worker-' + worker.id)) return;
+
+        let cardItem = document.createElement('div');
+        cardItem.id = 'spk-worker-' + worker.id;
+        cardItem.className = 'p-2 bg-light rounded-3 border border-primary border-opacity-25 d-flex justify-content-between align-items-center mt-1 active-spk-worker';
+        cardItem.innerHTML = `
+            <div>
+                <span class="badge font-monospace mb-1" style="font-size: 0.5rem; background-color: #0d6efd; color: white;">#${worker.id.toString().padStart(3, '0')}</span>
+                <h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">${worker.nama}</h6>
+                <span class="text-muted" style="font-size: 0.6rem;">${worker.posisi}</span>
+            </div>
+            <button onclick="returnWorkerFromSpk('${worker.id}', '${prodId}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.55rem; background-color: #0b192c;">
+                <i class="fa-solid fa-rotate-left"></i> Return
+            </button>
+        `;
+        listContainer.appendChild(cardItem);
+    }
+
     function returnWorkerFromSpk(workerId, prodId) {
-        // Return dikasih null buat prodId biar di database production_order_id = null
-        updateWorkerStatusInDatabase(workerId, 'Idle', null, function() {
+        removeAssignment(workerId);
+        updateWorkerStatusInDatabase(workerId, 'Idle', function() {
             let wCard = document.getElementById('spk-worker-' + workerId);
             if(wCard) wCard.remove();
 
@@ -343,10 +281,11 @@
             if (leftCard) leftCard.style.display = 'block';
 
             let listContainer = document.getElementById('spk-workers-' + prodId);
-            if (listContainer.querySelectorAll('.active-spk-worker').length === 0) {
+            if (listContainer && listContainer.querySelectorAll('.active-spk-worker').length === 0) {
                 let spkBox = document.getElementById('spk-' + prodId);
-                if (spkBox.parentElement.id !== 'readySpkContainer') {
-                    document.getElementById('readySpkContainer').appendChild(spkBox);
+                let readyContainer = document.getElementById('readySpkContainer');
+                if (spkBox && readyContainer) {
+                    readyContainer.appendChild(spkBox);
                     spkBox.style.borderColor = '#0d6efd'; 
                     spkBox.style.backgroundColor = '#ffffff';
                 }
@@ -355,68 +294,172 @@
         });
     }
 
-    // ==== GENERAL DROP & CUTI DROP ====
+    // ==== GENERAL WORK ====
     function handleGeneralDragOver(e) { e.preventDefault(); document.getElementById('generalWorkZone').style.backgroundColor = '#ffe5d0'; }
     function handleGeneralDragLeave(e) { document.getElementById('generalWorkZone').style.backgroundColor = '#ffffff'; }
     
     function handleGeneralDrop(e) {
         e.preventDefault(); document.getElementById('generalWorkZone').style.backgroundColor = '#ffffff';
         let rawData = e.dataTransfer.getData('text/plain'); if (!rawData) return; let worker = JSON.parse(rawData);
+        
+        saveAssignment(worker.id, 'general', null);
+        updateWorkerStatusInDatabase(worker.id, 'Kerja', function() {
+            renderWorkerToGeneralUI(worker);
+            checkAllPlaceholders();
+        });
+    }
+
+    function renderWorkerToGeneralUI(worker) {
+        let leftCard = document.getElementById('worker-' + worker.id); if (leftCard) leftCard.style.display = 'none';
+        let listContainer = document.getElementById('generalWorkList');
         if (document.getElementById('gen-assigned-' + worker.id)) return;
 
-        updateWorkerStatusInDatabase(worker.id, 'Kerja', null, function() {
-            let leftCard = document.getElementById('worker-' + worker.id); if (leftCard) leftCard.style.display = 'none';
-            let listContainer = document.getElementById('generalWorkList');
-            let cardItem = document.createElement('div');
-            cardItem.id = 'gen-assigned-' + worker.id; cardItem.className = 'p-2 bg-light rounded-3 shadow-sm border border-warning border-opacity-25 d-flex justify-content-between align-items-center gen-worker-item';
-            cardItem.innerHTML = `<div><span class="badge text-white font-monospace mb-1" style="font-size: 0.5rem; background-color: #ff6600;">#${worker.id.toString().padStart(3, '0')}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">${worker.nama}</h6></div><button onclick="returnGeneralWorker('${worker.id}')" class="btn btn-sm text-white fw-bold px-1 py-1" style="font-size: 0.55rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i></button>`;
-            listContainer.appendChild(cardItem); checkAllPlaceholders();
-        });
+        let cardItem = document.createElement('div');
+        cardItem.id = 'gen-assigned-' + worker.id; 
+        cardItem.className = 'p-2 bg-light rounded-3 shadow-sm border border-warning border-opacity-25 d-flex justify-content-between align-items-center gen-worker-item';
+        cardItem.innerHTML = `<div><span class="badge text-white font-monospace mb-1" style="font-size: 0.5rem; background-color: #ff6600;">#${worker.id.toString().padStart(3, '0')}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.75rem;">${worker.nama}</h6></div><button onclick="returnGeneralWorker('${worker.id}')" class="btn btn-sm text-white fw-bold px-1 py-1" style="font-size: 0.55rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i></button>`;
+        listContainer.appendChild(cardItem);
     }
     
     function returnGeneralWorker(id) {
-        updateWorkerStatusInDatabase(id, 'Idle', null, function() {
+        removeAssignment(id);
+        updateWorkerStatusInDatabase(id, 'Idle', function() {
             let item = document.getElementById('gen-assigned-' + id); if(item) item.remove();
             let leftCard = document.getElementById('worker-' + id); if (leftCard) leftCard.style.display = 'block'; checkAllPlaceholders();
         });
     }
 
+    // ==== CUTI ZONE ====
     function handleDragOver(e, zoneId) { e.preventDefault(); if(zoneId === 'cutiZone') document.getElementById('cutiZone').style.backgroundColor = '#e2e8f0'; }
     function handleDragLeave(e, zoneId) { if(zoneId === 'cutiZone') document.getElementById('cutiZone').style.backgroundColor = '#f8fafc'; }
+    
     function handleCutiDrop(e) {
         e.preventDefault(); document.getElementById('cutiZone').style.backgroundColor = '#f8fafc';
         let rawData = e.dataTransfer.getData('text/plain'); if (!rawData) return; let worker = JSON.parse(rawData);
+        
+        saveAssignment(worker.id, 'cuti', null);
+        updateWorkerStatusInDatabase(worker.id, 'Cuti', function() {
+            renderWorkerToCutiUI(worker);
+            checkAllPlaceholders();
+        });
+    }
+
+    function renderWorkerToCutiUI(worker) {
+        let leftCard = document.getElementById('worker-' + worker.id); if (leftCard) leftCard.style.display = 'none';
+        let listContainer = document.getElementById('cutiList');
         if (document.getElementById('cuti-assigned-' + worker.id)) return;
 
-        updateWorkerStatusInDatabase(worker.id, 'Cuti', null, function() {
-            let leftCard = document.getElementById('worker-' + worker.id); if (leftCard) leftCard.style.display = 'none';
-            let listContainer = document.getElementById('cutiList');
-            let cardItem = document.createElement('div');
-            cardItem.id = 'cuti-assigned-' + worker.id; cardItem.className = 'p-2.5 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center cuti-item';
-            cardItem.innerHTML = `<div><span class="badge bg-secondary text-white font-monospace mb-1" style="font-size: 0.55rem;">#${worker.id.toString().padStart(3, '0')}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">${worker.nama}</h6><span class="text-muted" style="font-size: 0.65rem;">${worker.posisi}</span></div><button onclick="returnCutiWorker('${worker.id}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.6rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i> Return</button>`;
-            listContainer.appendChild(cardItem); checkAllPlaceholders();
-        });
+        let cardItem = document.createElement('div');
+        cardItem.id = 'cuti-assigned-' + worker.id; 
+        cardItem.className = 'p-2.5 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center cuti-item';
+        cardItem.innerHTML = `<div><span class="badge bg-secondary text-white font-monospace mb-1" style="font-size: 0.55rem;">#${worker.id.toString().padStart(3, '0')}</span><h6 class="fw-bold text-dark mb-0" style="font-size: 0.85rem;">${worker.nama}</h6><span class="text-muted" style="font-size: 0.65rem;">${worker.posisi}</span></div><button onclick="returnCutiWorker('${worker.id}')" class="btn btn-sm text-white fw-bold px-2 py-1" style="font-size: 0.6rem; background-color: #0b192c;"><i class="fa-solid fa-rotate-left"></i> Return</button>`;
+        listContainer.appendChild(cardItem);
     }
     
     function returnCutiWorker(id) {
-        updateWorkerStatusInDatabase(id, 'Idle', null, function() {
+        removeAssignment(id);
+        updateWorkerStatusInDatabase(id, 'Idle', function() {
             let item = document.getElementById('cuti-assigned-' + id); if(item) item.remove();
             let leftCard = document.getElementById('worker-' + id); if (leftCard) leftCard.style.display = 'block'; checkAllPlaceholders();
         });
     }
 
-    // ==== Nembak API & Bawa Data prodId (BARU!) ====
-    function updateWorkerStatusInDatabase(id, newStatus, prodId, callback) {
-        fetch(`/man-power/${id}/update-status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-            body: JSON.stringify({ status: newStatus, production_order_id: prodId })
-        }).then(r => r.json()).then(data => {
-            if(data.success) callback(); else alert('Gagal memperbarui status ke database.');
-        }).catch(err => console.error(err));
+    // ==== LOCALSTORAGE SYNC & MANAGEMENT ====
+    function saveAssignment(workerId, type, targetId) {
+        let assignments = JSON.parse(localStorage.getItem('man_power_assignments') || '{}');
+        assignments[workerId] = { type: type, targetId: targetId };
+        localStorage.setItem('man_power_assignments', JSON.stringify(assignments));
     }
 
-    // ==== Cek Semua Placeholder UI ====
+    function removeAssignment(workerId) {
+        let assignments = JSON.parse(localStorage.getItem('man_power_assignments') || '{}');
+        delete assignments[workerId];
+        localStorage.setItem('man_power_assignments', JSON.stringify(assignments));
+    }
+
+    function validateAndCleanStorage() {
+        let assignments = JSON.parse(localStorage.getItem('man_power_assignments') || '{}');
+        let changed = false;
+        for (let workerId in assignments) {
+            let worker = allWorkers.find(w => w.id == workerId);
+            if (!worker || worker.status === 'Idle') {
+                delete assignments[workerId];
+                changed = true;
+            }
+        }
+        if (changed) {
+            localStorage.setItem('man_power_assignments', JSON.stringify(assignments));
+        }
+    }
+
+    function restoreStateFromStorage() {
+        let assignments = JSON.parse(localStorage.getItem('man_power_assignments') || '{}');
+        let readySpkIds = Array.from(document.querySelectorAll('.spk-box')).map(el => el.id.replace('spk-', ''));
+
+        for (let workerId in assignments) {
+            let info = assignments[workerId];
+            let worker = allWorkers.find(w => w.id == workerId);
+            
+            if (!worker) {
+                delete assignments[workerId];
+                continue;
+            }
+
+            // AUTO-RECOVERY: Jika SPK asalnya sudah di-return / tidak ada di halaman, lepaskan paksa ke Idle
+            if (info.type === 'spk' && !readySpkIds.includes(info.targetId.toString())) {
+                delete assignments[workerId];
+                updateWorkerStatusInDatabase(workerId, 'Idle', null);
+                continue;
+            }
+
+            if (worker.status === 'Idle') {
+                delete assignments[workerId];
+                continue;
+            }
+
+            if (info.type === 'spk') {
+                renderWorkerToSpkUI(worker, info.targetId);
+            } else if (info.type === 'general') {
+                renderWorkerToGeneralUI(worker);
+            } else if (info.type === 'cuti') {
+                renderWorkerToCutiUI(worker);
+            }
+        }
+
+        allWorkers.forEach(worker => {
+            let statusLower = (worker.status || '').toLowerCase();
+            if (statusLower === 'cuti' && !assignments[worker.id]) {
+                assignments[worker.id] = { type: 'cuti', targetId: null };
+                renderWorkerToCutiUI(worker);
+            } else if (statusLower === 'kerja' && !assignments[worker.id]) {
+                assignments[worker.id] = { type: 'general', targetId: null };
+                renderWorkerToGeneralUI(worker);
+            }
+        });
+
+        localStorage.setItem('man_power_assignments', JSON.stringify(assignments));
+    }
+
+    function updateWorkerStatusInDatabase(id, newStatus, callback) {
+        fetch(`/man-power/${id}/update-status`, {
+            method: 'PATCH',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                if(callback) callback();
+            } else {
+                alert(data.message || 'Gagal memperbarui status ke database.');
+            }
+        })
+        .catch(err => console.error('Error:', err));
+    }
+
     function checkAllPlaceholders() {
         let cList = document.getElementById('cutiList'), cPh = document.getElementById('cutiPlaceholder');
         if(cPh) cPh.style.display = cList.querySelectorAll('.cuti-item').length === 0 ? 'block' : 'none';
@@ -432,14 +475,10 @@
         let wSpkList = document.getElementById('activeSpkContainer'), wPh = document.getElementById('activeSpkPlaceholder');
         if(wPh) wPh.style.display = wSpkList.querySelectorAll('.spk-box').length === 0 ? 'block' : 'none';
 
-        let emptySpk = document.getElementById('emptySpkState'), idleList = document.getElementById('readySpkContainer');
-        if(emptySpk) emptySpk.style.display = idleList.querySelectorAll('.spk-box').length === 0 ? 'block' : 'none';
-
         let cutiCount = document.getElementById('cutiList').querySelectorAll('.cuti-item').length;
         document.getElementById('cutiCount').innerText = cutiCount + ' Cuti';
     }
 
-    // Logic Delete...
     function handleDeleteDragOver(e) { e.preventDefault(); e.currentTarget.style.backgroundColor = '#fecaca'; e.currentTarget.style.transform = 'scale(1.02)'; }
     function handleDeleteDragLeave(e) { e.currentTarget.style.backgroundColor = '#fff5f5'; e.currentTarget.style.transform = 'scale(1)'; }
     function handleDeleteDrop(e) {

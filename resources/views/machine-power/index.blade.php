@@ -131,7 +131,7 @@
                     </div>
                 </div>
 
-                <!-- WORK ZONE (UPGRADED CARD) -->
+                <!-- WORK ZONE -->
                 <div class="p-4 rounded-4 bg-white shadow-sm border border-2 border-success" style="background-color: #f0fdf4 !important;">
                     <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <h5 class="fw-bold text-dark mb-0" style="font-size: 1.05rem;"><i class="fa-solid fa-industry text-success me-2"></i> WORK ZONE</h5>
@@ -153,7 +153,6 @@
                                             @if($item->start_time) <br><i class="fa-solid fa-clock text-warning me-1"></i> Mulai Pukul: <b class="text-dark">{{ $item->start_time }}</b> @endif
                                         </span>
 
-                                        {{-- Informasi Produk / SPK yang Sedang Dikerjakan --}}
                                         <div class="p-2 rounded-2 bg-light border border-secondary border-opacity-10 mt-2">
                                             <span class="text-uppercase text-muted d-block" style="font-size: 0.5rem; letter-spacing: 0.5px;">Sedang Mengerjakan Produksi:</span>
                                             <span class="fw-bold text-primary" style="font-size: 0.75rem;">

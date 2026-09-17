@@ -122,7 +122,7 @@
     </div>
 </div>
 
-<!-- 2. SECTION TABEL (Struktur yang sudah diperbaiki) -->
+<!-- 2. SECTION TABEL APPROVAL -->
 <div class="row mb-4">
     <div class="col-12">
         @php
@@ -130,6 +130,7 @@
         @endphp
 
         @if($role === 'super_admin')
+            <!-- TABEL SUPER ADMIN (Approval Hapus Data) -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -157,15 +158,24 @@
                                         <td class="small">{{ $item->data ?? '-' }}</td>
                                         <td class="small text-muted">{{ $item->alasan ?? '-' }}</td>
                                         <td class="text-end pe-3">
-                                            @if(isset($item->url))
-                                                <form action="{{ $item->url }}" method="POST" class="d-inline m-0 p-0">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-sm btn-success rounded-2 me-1" onclick="return confirm('Setujui penghapusan data secara permanen?')">
-                                                        <i class="fa-solid fa-check me-1"></i> Approve
-                                                    </button>
-                                                </form>
-                                            @endif
-                                            <button class="btn btn-sm btn-outline-danger rounded-2"><i class="fa-solid fa-xmark me-1"></i> Tolak</button>
+                                            <div class="d-inline-flex gap-1 justify-content-end">
+                                                @if(isset($item->url_approve))
+                                                    <form action="{{ $item->url_approve }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-2" onclick="return confirm('Setujui permintaan ini?')">
+                                                            <i class="fa-solid fa-check me-1"></i> Approve
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                @if(isset($item->url_reject))
+                                                    <form action="{{ $item->url_reject }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-2" onclick="return confirm('Tolak permintaan ini?')">
+                                                            <i class="fa-solid fa-xmark me-1"></i> Tolak
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -183,11 +193,11 @@
             </div>
             
         @elseif($role === 'admin')
-            <!-- TABEL ADMIN (Approval SPK dari User) -->
+            <!-- TABEL ADMIN (Approval SPK / Resource dari User) -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
-                        <i class="fa-solid fa-clipboard-list text-warning me-2"></i> Permintaan Approval SPK Baru (Dari User)
+                        <i class="fa-solid fa-clipboard-list text-warning me-2"></i> Permintaan Approval dari User (Operator)
                     </h6>
                     <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">{{ $pendingCount ?? 0 }} Perlu Tindakan</span>
                 </div>
@@ -198,7 +208,7 @@
                                 <tr>
                                     <th class="ps-3">Pemohon</th>
                                     <th>Modul</th>
-                                    <th>Data SPK Baru</th>
+                                    <th>Data Pengajuan</th>
                                     <th>Keterangan</th>
                                     <th class="text-end pe-3">Aksi</th>
                                 </tr>
@@ -211,12 +221,12 @@
                                         <td class="small fw-bold">{{ $item->data ?? '-' }}</td>
                                         <td class="small text-muted">{{ $item->alasan ?? '-' }}</td>
                                         <td class="text-end pe-3">
-                                            <div class="d-inline-flex gap-1">
+                                            <div class="d-inline-flex gap-1 justify-content-end">
                                                 @if(isset($item->url_approve))
                                                     <form action="{{ $item->url_approve }}" method="POST" class="m-0 p-0">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success rounded-2">
-                                                            <i class="fa-solid fa-check me-1"></i> Terima
+                                                            <i class="fa-solid fa-check me-1"></i> Approve
                                                         </button>
                                                     </form>
                                                 @endif
@@ -235,7 +245,7 @@
                                     <tr>
                                         <td colspan="5" class="text-center py-4 text-muted small">
                                             <i class="fa-solid fa-circle-check text-success fs-5 d-block mb-1"></i>
-                                            Tidak ada permintaan approval SPK baru saat ini.
+                                            Tidak ada permintaan approval baru saat ini.
                                         </td>
                                     </tr>
                                 @endforelse

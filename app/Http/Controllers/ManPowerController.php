@@ -51,8 +51,7 @@ class ManPowerController extends Controller
                 ]);
                 return redirect()->route('man-power.index')->with('success', 'Pengajuan penambahan Man Power telah dikirim.');
             } catch (\Exception $e) {
-                // PENGAMAN JIKA TABEL BELUM DIBUAT BONIFASIUS
-                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap (Tabel Database belum dibuat oleh tim IT).');
+                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap.');
             }
         }
 
@@ -95,7 +94,7 @@ class ManPowerController extends Controller
                 ]);
                 return redirect()->route('man-power.index')->with('success', 'Pengajuan pembaruan data dikirim.');
             } catch (\Exception $e) {
-                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap (Tabel Database belum dibuat oleh tim IT).');
+                return redirect()->route('man-power.index')->with('warning', 'Sistem Approval belum siap.');
             }
         }
 
@@ -144,7 +143,7 @@ class ManPowerController extends Controller
             }
             return redirect()->route('man-power.index')->with('success', $msg);
         } catch (\Exception $e) {
-            $msg = 'Sistem Approval belum siap (Tabel Database belum dibuat).';
+            $msg = 'Sistem Approval belum siap.';
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['success' => false, 'message' => $msg], 500);
             }
@@ -154,27 +153,33 @@ class ManPowerController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $manPower = \App\Models\ManPower::findOrFail($id);
-        $manPower->status = $request->status;
-        
-        // Simpan ID SPK kalau dikirim dari frontend, kosongkan kalau dia Cuti / Idle
-        $manPower->production_order_id = $request->production_order_id ?? null; 
-        
-        $manPower->save();
-
-        // TAMBAHAN: Jika pekerja di-return ke Idle atau Cuti, lepaskan ikatan mesinnya secara otomatis
-        if (in_array($request->status, ['Idle', 'Cuti'])) {
-            MachinePower::where('man_power_id', $id)->update([
-                'man_power_id' => null
-            ]);
+        try {
+            $manPower = ManPower::findOrFail($id);
             
-            // Opsional: Kosongkan juga production_order_id jika statusnya kembali ke Idle/Cuti total
-            if ($request->status === 'Idle') {
-                $manPower->production_order_id = null;
-                $manPower->save();
-            }
-        }
+            $statusInput = $request->input('status') ?? $request->json('status') ?? 'Idle';
+            $manPower->status = $statusInput;
+            
+            // HAPUS TOTAL LOGIKA PRODUCTION_ORDER_ID SUPAYA TIDAK ERROR 500
+            $manPower->save();
 
-        return response()->json(['success' => true]);
+            // Jika pekerja ditarik kembali ke Idle atau Cuti, bersihkan mesin terkait
+            if (in_array($statusInput, ['Idle', 'Cuti'])) {
+                MachinePower::where('man_power_id', $id)->update([
+                    'status'       => 'Standby',
+                    'man_power_id' => null,
+                    'start_time'   => null
+                ]);
+            }
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Status berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ERROR: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

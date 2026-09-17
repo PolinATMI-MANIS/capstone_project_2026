@@ -32,6 +32,7 @@ class DashboardController extends Controller
                     'modul'       => 'Production',
                     'data'        => $req->no_po . ' (' . $req->produk . ')',
                     'alasan'      => 'Hapus SPK Permanen',
+                    'url'         => route('produksi.approve_delete', $req->id),
                     'url_approve' => route('produksi.approve_delete', $req->id),
                     'url_reject'  => null 
                 ];
@@ -46,6 +47,7 @@ class DashboardController extends Controller
                     'modul'       => $req->target_type,
                     'data'        => $req->target_name,
                     'alasan'      => 'Permintaan Hapus ' . $req->target_type,
+                    'url'         => route('approval.process', $req->id) . '?action=approve',
                     'url_approve' => route('approval.process', $req->id) . '?action=approve',
                     'url_reject'  => route('approval.process', $req->id) . '?action=reject'
                 ];
@@ -62,6 +64,7 @@ class DashboardController extends Controller
                     'modul'       => 'Production',
                     'data'        => $req->no_po . ' (' . $req->produk . ')',
                     'alasan'      => 'Pembuatan SPK Baru (Target: ' . $req->jumlah_produksi . ' Pcs)',
+                    'url'         => route('produksi.approve_spk', $req->id),
                     'url_approve' => route('produksi.approve_spk', $req->id),
                     'url_reject'  => route('produksi.reject_spk', $req->id)
                 ];
@@ -78,6 +81,7 @@ class DashboardController extends Controller
                     'modul'       => $req->target_type,
                     'data'        => $req->target_name,
                     'alasan'      => 'Pengajuan ' . ucfirst($req->action_type) . ' ' . $req->target_type,
+                    'url'         => route('approval.process', $req->id) . '?action=approve',
                     'url_approve' => route('approval.process', $req->id) . '?action=approve',
                     'url_reject'  => route('approval.process', $req->id) . '?action=reject'
                 ];
