@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ProductionOrder;
+use App\Models\ApprovalRequest;
 
 class DashboardController extends Controller
 {
@@ -12,53 +14,85 @@ class DashboardController extends Controller
         $role = Auth::check() ? Auth::user()->role : 'user';
 
         $totalInventory  = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::count() : 0;
-        $totalProduction = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::count() : 0;
-        $totalResources = class_exists('\App\Models\ManPower') ? \App\Models\ManPower::where('status', 'Idle')->count() : 0;
+        $totalProduction = class_exists('\App\Models\ProductionOrder') ? ProductionOrder::count() : 0;
+        $totalResources  = class_exists('\App\Models\ManPower') ? \App\Models\ManPower::where('status', 'Idle')->count() : 0;
         $totalOrders     = class_exists('\App\Models\Order') ? \App\Models\Order::count() : 0;
         $totalRnd        = class_exists('\App\Models\Rnd') ? \App\Models\Rnd::count() : 0;
 
         $pendingApprovals = []; 
         
-        if (class_exists('\App\Models\ProductionOrder')) {
-            // 1. JIKA YANG LOGIN SUPER ADMIN
-            if ($role == 'super_admin') {
-                $reqHapusProduksi = \App\Models\ProductionOrder::where('status', 'Menunggu Dihapus')->get();
-                foreach ($reqHapusProduksi as $req) {
-                    $pendingApprovals[] = (object)[
-                        'id'      => $req->id,
-                        'pemohon' => 'Admin Produksi',
-                        'modul'   => 'Production',
-                        'data'    => $req->no_po . ' (' . $req->produk . ')',
-                        'alasan'  => 'Hapus SPK Permanen',
-                        'url'     => route('produksi.approve_delete', $req->id)
-                    ];
-                }
-            } 
-            // 2. JIKA YANG LOGIN ADMIN BIASA
-            elseif ($role == 'admin') {
-                $reqSpkBaru = \App\Models\ProductionOrder::where('status', 'Menunggu Approval Admin')->get();
-                foreach ($reqSpkBaru as $req) {
-                    $pendingApprovals[] = (object)[
-                        'id'      => $req->id,
-                        'pemohon' => 'Operator User',
-                        'modul'   => 'Production',
-                        'data'    => $req->no_po . ' (' . $req->produk . ')',
-                        'alasan'  => 'Pembuatan SPK Baru (Target: ' . $req->jumlah_produksi . ' Pcs)',
-                        'url_approve' => route('produksi.approve_spk', $req->id),
-                        'url_reject'  => route('produksi.reject_spk', $req->id)
-                    ];
-                }
+        // 1. JIKA YANG LOGIN SUPER ADMIN
+        if ($role == 'super_admin') {
+            // A. Request Hapus SPK dari Admin
+            $reqHapusProduksi = ProductionOrder::where('status', 'Menunggu Dihapus')->get();
+            foreach ($reqHapusProduksi as $req) {
+                $pendingApprovals[] = (object)[
+                    'id'          => $req->id,
+                    'pemohon'     => 'Admin Produksi',
+                    'modul'       => 'Production',
+                    'data'        => $req->no_po . ' (' . $req->produk . ')',
+                    'alasan'      => 'Hapus SPK Permanen',
+                    'url_approve' => route('produksi.approve_delete', $req->id),
+                    'url_reject'  => null 
+                ];
+            }
+
+            // B. Request Hapus Man Power & Machine Power dari Admin
+            $reqDeleteResource = ApprovalRequest::where('action_type', 'delete')->get();
+            foreach ($reqDeleteResource as $req) {
+                $pendingApprovals[] = (object)[
+                    'id'          => $req->id,
+                    'pemohon'     => 'Admin',
+                    'modul'       => $req->target_type,
+                    'data'        => $req->target_name,
+                    'alasan'      => 'Permintaan Hapus ' . $req->target_type,
+                    'url_approve' => route('approval.process', $req->id) . '?action=approve',
+                    'url_reject'  => route('approval.process', $req->id) . '?action=reject'
+                ];
+            }
+        } 
+        // 2. JIKA YANG LOGIN ADMIN BIASA
+        elseif ($role == 'admin') {
+            // A. Request SPK Baru dari User/Operator
+            $reqSpkBaru = ProductionOrder::where('status', 'Menunggu Approval Admin')->get();
+            foreach ($reqSpkBaru as $req) {
+                $pendingApprovals[] = (object)[
+                    'id'          => $req->id,
+                    'pemohon'     => 'Operator User',
+                    'modul'       => 'Production',
+                    'data'        => $req->no_po . ' (' . $req->produk . ')',
+                    'alasan'      => 'Pembuatan SPK Baru (Target: ' . $req->jumlah_produksi . ' Pcs)',
+                    'url_approve' => route('produksi.approve_spk', $req->id),
+                    'url_reject'  => route('produksi.reject_spk', $req->id)
+                ];
+            }
+
+            // B. Request Tambah/Edit Man Power & Machine Power dari User/Operator
+            $reqResourceUser = ApprovalRequest::whereIn('action_type', ['create', 'update'])
+                                               ->whereIn('target_type', ['ManPower', 'MachinePower'])
+                                               ->get();
+            foreach ($reqResourceUser as $req) {
+                $pendingApprovals[] = (object)[
+                    'id'          => $req->id,
+                    'pemohon'     => 'Operator User',
+                    'modul'       => $req->target_type,
+                    'data'        => $req->target_name,
+                    'alasan'      => 'Pengajuan ' . ucfirst($req->action_type) . ' ' . $req->target_type,
+                    'url_approve' => route('approval.process', $req->id) . '?action=approve',
+                    'url_reject'  => route('approval.process', $req->id) . '?action=reject'
+                ];
             }
         }
+
         $pendingCount = count($pendingApprovals);
 
         $invRaw = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::where('type', 'raw')->count() : 0;
         $invWip = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::where('type', 'wip')->count() : 0;
         $invFg  = class_exists('\App\Models\Inventory') ? \App\Models\Inventory::where('type', 'finished')->count() : 0;
 
-        $prodPending = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::whereIn('status', ['Menunggu Approval Admin', 'Menunggu Bahan Baku', 'Pending - Trouble', 'Menunggu Dihapus'])->count() : 0;
-        $prodRunning = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::where('status', 'Proses Produksi Berjalan')->count() : 0;
-        $prodDone    = class_exists('\App\Models\ProductionOrder') ? \App\Models\ProductionOrder::where('status', 'Selesai')->count() : 0;
+        $prodPending = ProductionOrder::whereIn('status', ['Menunggu Approval Admin', 'Menunggu Bahan Baku', 'Pending - Trouble', 'Menunggu Dihapus'])->count();
+        $prodRunning = ProductionOrder::where('status', 'Proses Produksi Berjalan')->count();
+        $prodDone    = ProductionOrder::where('status', 'Selesai')->count();
 
         return view('dashboard', compact(
             'totalInventory', 'totalProduction', 'totalResources', 'totalOrders', 'totalRnd',
@@ -70,7 +104,6 @@ class DashboardController extends Controller
 
     public function handleApproval(Request $request, $id)
     {
-        $action = $request->input('action'); 
         return back()->with('success', 'Status pengajuan berhasil diubah!');
     }
 }

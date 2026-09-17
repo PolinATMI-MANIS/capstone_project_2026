@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\ProduksiController;
 use App\Http\Controllers\ManPowerController;
 use App\Http\Controllers\MachinePowerController;
@@ -10,6 +11,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RnDfeatureController;
+use App\Models\ApprovalRequest;
+use App\Models\ManPower;
+use App\Models\MachinePower;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,7 +67,7 @@ Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class
 Route::get('/waiting-for-resources', [WaitingResourceController::class, 'index'])->name('waiting-resources.index');
 Route::post('/api/waiting-resources/store', [WaitingResourceController::class, 'apiStore'])->name('waiting-resources.api-store');
 
-// Route Modul RnD (Fungsional dari branch teman)
+// Route Modul RnD
 Route::prefix('rnd')->name('rnd.')->group(function () {
     Route::get('/', [RnDfeatureController::class, 'index'])->name('index');
     Route::get('/create', [RnDfeatureController::class, 'create'])->name('create');
@@ -89,6 +93,47 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
+    // ROUTE: Eksekusi Approve / Reject untuk ManPower & MachinePower dari Dashboard
+    Route::post('/approval-request/{id}/process', function (\Illuminate\Http\Request $request, $id) {
+        $approval = ApprovalRequest::findOrFail($id);
+        $action = $request->input('action'); // 'approve' atau 'reject'
+
+        if ($action === 'approve') {
+            $payload = json_decode($approval->payload, true);
+
+            if ($approval->action_type === 'create') {
+                if ($approval->target_type === 'ManPower') {
+                    ManPower::create($payload);
+                } elseif ($approval->target_type === 'MachinePower') {
+                    MachinePower::create($payload);
+                }
+            } elseif ($approval->action_type === 'update') {
+                if ($approval->target_type === 'ManPower') {
+                    $target = ManPower::find($approval->target_id);
+                    if ($target) $target->update($payload);
+                } elseif ($approval->target_type === 'MachinePower') {
+                    $target = MachinePower::find($approval->target_id);
+                    if ($target) $target->update($payload);
+                }
+            } elseif ($approval->action_type === 'delete') {
+                if ($approval->target_type === 'ManPower') {
+                    $target = ManPower::find($approval->target_id);
+                    if ($target) $target->delete();
+                } elseif ($approval->target_type === 'MachinePower') {
+                    $target = MachinePower::find($approval->target_id);
+                    if ($target) $target->delete();
+                }
+            }
+
+            $approval->delete();
+            return back()->with('success', 'Pengajuan berhasil disetujui!');
+        } else {
+            // Jika reject, cukup hapus requestnya
+            $approval->delete();
+            return back()->with('warning', 'Pengajuan ditolak.');
+        }
+    })->name('approval.process');
+
     Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
     Route::get('/purchase', function () { return "Halaman Order Here! (Dalam Pengembangan)"; });
 
@@ -104,4 +149,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/waiting-resources/{id}', [WaitingResourceController::class, 'destroy'])->name('waiting-resources.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    Route::get('/link-storage-host', function () {
+        Artisan::call('storage:link');
+        return 'Sukses membuat storage link!';
+    });
 });
