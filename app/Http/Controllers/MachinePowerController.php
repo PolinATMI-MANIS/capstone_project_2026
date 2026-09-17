@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MachinePower;
 use App\Models\ManPower;
+use App\Models\ProductionOrder;
 use App\Models\ApprovalRequest;
 use Illuminate\Http\Request;
 
@@ -13,16 +14,17 @@ class MachinePowerController extends Controller
     {
         $machinePowers = MachinePower::all();
 
-        // AUTO-HEALING BUG: MESIN OTOMATIS IDLE JIKA SPK / PEKERJA DI-RETURN
+        // AUTO-HEALING: RESET MESIN JIKA PEKERJA DI-RETURN
         foreach ($machinePowers as $machine) {
             if ($machine->status === 'Running' && $machine->man_power_id) {
                 $pekerja = ManPower::find($machine->man_power_id);
                 
                 if (!$pekerja || in_array($pekerja->status, ['Idle', 'Cuti'])) {
                     $machine->update([
-                        'status'       => 'Standby',
-                        'man_power_id' => null,
-                        'start_time'   => null
+                        'status'              => 'Standby',
+                        'man_power_id'        => null,
+                        'start_time'          => null,
+                        'production_order_id' => null
                     ]);
                 }
             }
@@ -39,7 +41,10 @@ class MachinePowerController extends Controller
             ->whereNotIn('id', $assignedOperatorIds)
             ->get();
 
-        return view('machine-power.index', compact('machinePowers', 'waitingOperators'));
+        // Ambil SPK aktif yang sedang ready untuk dipasangkan ke mesin running jika kosong
+        $activeSpk = ProductionOrder::whereIn('status', ['ready', 'Proses Produksi Berjalan'])->first();
+
+        return view('machine-power.index', compact('machinePowers', 'waitingOperators', 'activeSpk'));
     }
 
     public function create()
@@ -134,9 +139,14 @@ class MachinePowerController extends Controller
                 $machine->start_time = $request->input('start_time');
             }
 
+            // Otomatis pasangkan SPK yang sedang ready jika ada
+            $latestSpk = ProductionOrder::whereIn('status', ['ready', 'Proses Produksi Berjalan'])->first();
+            if ($latestSpk) {
+                $machine->production_order_id = $latestSpk->id;
+            }
+
             $machine->save();
 
-            // SINKRONISASI TOTAL: JIKA MESIN DI-RETURN / STANDBY / BREAKDOWN, LEPASKAN OPERATOR
             $normalizedStatus = strtolower(trim($newStatus));
             if (in_array($normalizedStatus, ['standby', 'idle', 'maintenance', 'breakdown'])) {
                 if ($machine->man_power_id) {
@@ -147,8 +157,9 @@ class MachinePowerController extends Controller
                 }
 
                 $machine->update([
-                    'man_power_id' => null,
-                    'start_time'   => null
+                    'man_power_id'        => null,
+                    'start_time'          => null,
+                    'production_order_id' => null
                 ]);
             }
 

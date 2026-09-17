@@ -141,9 +141,15 @@
                     <div id="runningList" class="d-flex flex-column gap-2">
                         @php $hasRunning = false; @endphp
                         @foreach ($machinePowers as $item)
-                            @php $statusClean = trim(ucfirst(strtolower($item->status ?? ''))); @endphp
+                            @php 
+                                $statusClean = trim(ucfirst(strtolower($item->status ?? ''))); 
+                            @endphp
                             @if($statusClean == 'Running' && $item->operator)
-                                @php $hasRunning = true; @endphp
+                                @php 
+                                    $hasRunning = true; 
+                                    // Ambil SPK langsung dari relasi mesin, operator, atau fallback ke activeSpk global
+                                    $resolvedSpk = $item->productionOrder ?? optional($item->operator)->productionOrder ?? $activeSpk ?? null;
+                                @endphp
                                 <div id="assigned-{{ $item->id }}" class="p-3 bg-white rounded-3 shadow-sm border d-flex justify-content-between align-items-center">
                                     <div>
                                         <span class="badge bg-success text-white mb-1" style="font-size: 0.55rem;">RUNNING</span>
@@ -157,10 +163,10 @@
                                             <span class="text-uppercase text-muted d-block" style="font-size: 0.5rem; letter-spacing: 0.5px;">Sedang Mengerjakan Produksi:</span>
                                             <span class="fw-bold text-primary" style="font-size: 0.75rem;">
                                                 <i class="fa-solid fa-box-open me-1"></i> 
-                                                {{ optional($item->operator->productionOrder)->produk ?? 'Tidak ada SPK aktif' }} 
-                                                @if(optional($item->operator->productionOrder)->no_po)
+                                                {{ optional($resolvedSpk)->produk ?? 'Tidak ada SPK aktif' }} 
+                                                @if(optional($resolvedSpk)->no_po)
                                                     <span class="badge bg-dark bg-opacity-10 text-dark font-monospace ms-1" style="font-size: 0.55rem;">
-                                                        #{{ optional($item->operator->productionOrder)->no_po }}
+                                                        #{{ optional($resolvedSpk)->no_po }}
                                                     </span>
                                                 @endif
                                             </span>
