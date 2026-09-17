@@ -15,15 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('no_po')->unique()->nullable();
             $table->string('nama_customer');
-            $table->string('kode_barang');
+            $table->string('kode_barang')->nullable();
             $table->string('nama_barang');
             $table->integer('kuantitas');
             $table->decimal('harga_satuan', 15, 2);
-            $table->string('permintaan_material');
+            $table->string('permintaan_material')->nullable();
             $table->date('tanggal_pemesanan');
             $table->dateTime('waktu_tgl_deadline');
-            $table->string('estimasi_pengerjaan');
-            $table->enum('status', ['Waiting', 'On Progress', 'Completed', 'Cancelled'])->default('Waiting');
+            $table->string('estimasi_pengerjaan')->nullable();
+            
+            // PERBAIKAN: Menggunakan string agar fleksibel menampung 'Approved', 'Rejected', dll.
+            $table->string('status', 50)->default('On Progress');
+            
             $table->text('keterangan')->nullable();
             $table->timestamps();
         });

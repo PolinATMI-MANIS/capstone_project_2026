@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resources - Capstone Project</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f1f5f9; /* Background terang bersih */
             color: #1e293b;
             overflow-x: hidden;
         }
@@ -133,6 +133,7 @@
             color: #fff;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -144,33 +145,53 @@
         </div>
         
         <div class="sidebar-category">Modules</div>
+        
+        <!-- List Menu Bersih Tanpa Duplikat -->
         <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
-        <a href="/production">
+        <a href="/production" class="{{ Request::is('production*') ? 'active' : '' }}">
             <i class="fa-solid fa-industry"></i> Production
         </a>
-        <a href="/inventory">
+        <a href="/inventory" class="{{ Request::is('inventory*') ? 'active' : '' }}">
             <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </a>
-
-        <!-- Menu Single (Tanpa Dropdown) -->
-        <li class="nav-item">
-            <a href="/purchase-delivery" class="nav-link {{ Request::is('purchase-delivery*') ? 'active' : '' }}">
-                <i class="fa-solid fa-cart-flatbed me-2"></i>
+        <!-- Arahkan href ke URL/Route Hub -->
+        <a href="/purchase-delivery" class="nav-link d-flex justify-content-between align-items-center {{ request()->is('purchase-delivery*') ? 'active' : '' }}">
+            <div>
+                <i class="fa-solid fa-cart-shopping me-2"></i>
                 <span>Purchase & Delivery</span>
-            </a>
-        </li>
-
-        <a href="/rnd">
+            </div>
+        </a>
+        <a href="/rnd" class="{{ Request::is('rnd*') ? 'active' : '' }}">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
+        <a href="/resources" class="{{ Request::is('resources*') ? 'active' : '' }}">
+            <i class="fa-solid fa-users-gear"></i> Resources
+        </a>
+
+        <!-- Footer / Support Box -->
+        <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
+            <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fa-solid fa-headset text-danger me-2"></i>
+                    <span class="fw-bold text-dark small">Capstone Support</span>
+                </div>
+                <p class="text-muted m-0" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
+                </p>
+                <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
+                </p>
+            </div>
+        </div>
     </div>
 
     <div class="main-content">
         @yield('content')
     </div>
 
+    <!-- Cukup pakai 1 script Bootstrap terbaru -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

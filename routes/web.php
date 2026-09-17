@@ -4,29 +4,80 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\DeliveryOrderController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\InventoryController;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-// 1. Jika buka 127.0.0.1:8000, langsung lempar ke halaman purchase
+// 1. Redirect Halaman Utama ke Hub Purchase & Delivery
 Route::get('/', function () {
-    return redirect('/purchase');
+    return redirect('/purchase-delivery');
 });
 
-// 2. Semua route bisa dibuka langsung TANPA LOGIN
-Route::get('/dashboard', [DashboardController::class, 'index']);
-Route::get('/purchase', [PurchaseController::class, 'index']);
-Route::post('/purchase/store', [PurchaseController::class, 'store']); // Untuk simpan data
-Route::get('/delivery/{id}', [DeliveryOrderController::class, 'show']);
-Route::get('/purchase/{id}', [PurchaseController::class, 'show']);
-Route::get('/delivery', [DeliveryOrderController::class, 'index']);
-Route::post('/delivery/store', [DeliveryOrderController::class, 'store']);
-Route::get('/login', [LoginController::class, 'index'])->name('login');
-Route::get('/login-as/{role}', function ($role) {
-    $user = User::where('role', $role)->first();
-    if (!$user) {
-        return "User dengan role {$role} belum ada di database!";
-    }
-    Auth::login($user);
-    return redirect('/purchase');
+// ==========================================
+// RUTE UNTUK TAMU (BELUM LOGIN)
+// ==========================================
+Route::middleware('guest')->group(function () {
+    Route::get('/login', function () {
+        return view('login');
+    })->name('login');
+    Route::post('/proses-login', [LoginController::class, 'authenticate']);
+
+    // Rute Helper untuk Testing Login Cepat
+    Route::get('/login-as/{role}', function ($role) {
+        $user = User::where('role', $role)->first();
+        if (!$user) {
+            return "User dengan role {$role} belum ada di database!";
+        }
+        Auth::login($user);
+        return redirect('/purchase-delivery');
+    });
 });
-Route::get('/purchase-delivery', [PurchaseController::class, 'hub']);
+
+// ==========================================
+// RUTE WAJIB LOGIN (SEMUA ROLE)
+// ==========================================
+Route::middleware('auth')->group(function () {
+    
+    // Logout
+    Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
+
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval']);
+
+    // --- HALAMAN UTAMA HUB ---
+    Route::get('/purchase-delivery', [PurchaseController::class, 'hub'])->name('purchase.hub');
+
+    // --- PURCHASE ORDER ---
+    Route::get('/purchase', [PurchaseController::class, 'index'])->name('purchase.index');
+    Route::get('/purchase/{id}', [PurchaseController::class, 'show']);
+    Route::post('/purchase/store', [PurchaseController::class, 'store']);
+    Route::put('/purchase/{id}', [PurchaseController::class, 'update']);
+    Route::patch('/purchase/{id}/approval', [PurchaseController::class, 'approval']);
+    Route::post('/purchase/{id}/request-delete', [PurchaseController::class, 'requestDelete'])->name('purchase.requestDelete');
+    Route::delete('/purchase/{id}', [PurchaseController::class, 'destroy'])->name('purchase.destroy');
+
+    // --- DELIVERY ORDER ---
+    Route::get('/delivery', [DeliveryOrderController::class, 'index'])->name('delivery.index');
+    Route::get('/delivery/{id}', [DeliveryOrderController::class, 'show']);
+    Route::post('/delivery/store', [DeliveryOrderController::class, 'store']);
+    Route::put('/delivery/{id}/confirm', [DeliveryOrderController::class, 'confirmDelivery']);
+    Route::patch('/delivery/{id}/approval', [DeliveryOrderController::class, 'approval']);
+    Route::delete('/delivery/{id}', [DeliveryOrderController::class, 'destroy']);
+
+    // Dummy Modules
+    Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
+    Route::get('/rnd', function () { return "Halaman RnD (Dalam Pengembangan)"; });
+
+    // --- RUTE KHUSUS SUPER ADMIN & ADMIN ---
+    Route::middleware('role:super_admin,admin')->group(function () {
+        Route::get('/inventory', function () { return "Halaman Inventory (Dalam Pengembangan)"; });
+        Route::get('/production', function () { return "Halaman Production (Dalam Pengembangan)"; });
+    });
+
+    // --- RUTE KHUSUS SUPER ADMIN SAJA ---
+    Route::middleware('role:super_admin')->group(function () {
+        // Taruh rute khusus super admin di sini nanti
+    });
+});

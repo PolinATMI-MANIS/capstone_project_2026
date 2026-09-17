@@ -9,9 +9,8 @@ class DeliveryOrder extends Model
 {
     use HasFactory;
 
-    // Tambahkan baris ini, ganti 'deliveries' dengan nama tabel asli kamu di phpMyAdmin 
-
-    protected $guarded = ['id'];
+    // Buka proteksi mass-assignment agar semua kolom bisa di-update
+    protected $guarded = []; 
 
     public function purchase()
     {

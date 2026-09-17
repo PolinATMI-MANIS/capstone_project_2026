@@ -2,11 +2,34 @@
 
 @section('content')
 <div class="container-fluid py-3 px-4">
-    <!-- Header Hub -->
-    <div class="mb-4">
-        <span class="badge bg-warning text-dark fw-bold mb-1">CAPSTONE 2026</span>
-        <h2 class="fw-bold text-dark mb-1">PURCHASE & DELIVERY HUB</h2>
-        <p class="text-muted small mb-0">Pilih modul operasi yang ingin kamu kelola atau lihat ringkasan status di bawah.</p>
+    <!-- Header Hub dengan Profil User di Pojok Kanan -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- Kiri: Judul Halaman -->
+        <div>
+            <span class="badge bg-warning text-dark font-weight-bold px-2 py-1 mb-1">CAPSTONE 2026</span>
+            <h2 class="fw-bold m-0">PURCHASE & DELIVERY HUB</h2>
+            <p class="text-muted small m-0">Pilih modul operasi yang ingin kamu kelola atau lihat ringkasan status di bawah.</p>
+        </div>
+
+        <!-- Kanan: Card Profil User Login -->
+        @auth
+        <div class="d-flex align-items-center bg-white px-3 py-2 rounded-4 shadow-sm border">
+            <!-- Inisial Nama User -->
+            <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width: 38px; height: 38px; font-size: 16px;">
+                {{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}
+            </div>
+            
+            <!-- Nama & Role User -->
+            <div>
+                <div class="fw-bold text-dark small lh-1 mb-1">
+                    {{ Auth::user()->name ?? 'User Capstone' }}
+                </div>
+                <span class="badge bg-warning-subtle text-warning border border-warning text-uppercase" style="font-size: 9px; padding: 2px 6px;">
+                    {{ Auth::user()->role ?? 'GUEST' }}
+                </span>
+            </div>
+        </div>
+        @endauth
     </div>
 
     <!-- 1. Row 4 Card Ringkasan Statistik -->

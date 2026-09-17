@@ -6,49 +6,66 @@
     <title>Login | Capstone 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<!-- Ubah URL background-image di bawah ini dengan gambar aslinya -->
-<body class="relative flex items-center justify-center h-screen bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1920&q=80');">
-    
-    <!-- Overlay Gelap -->
-    <div class="absolute inset-0 bg-black/50"></div>
+<body class="relative min-h-screen flex items-center justify-center">
+
+    <!-- Background Image & Overlay Gelap -->
+    <div class="absolute inset-0 z-0">
+        <img src="{{ asset('img/bg-praktek.jpg') }}" alt="Background Praktek" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-[#0A192F]/80 mix-blend-multiply"></div>
+    </div>
 
     <!-- Card Login Glassmorphism -->
-    <div class="relative z-10 bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md text-white">
+    <div class="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl mx-4">
         
-        <!-- Placeholder Logo -->
-        <div class="bg-white rounded-lg p-2 w-24 h-12 mx-auto mb-6 flex items-center justify-center">
-            <span class="text-xs text-black font-bold">LOGO ATMI</span>
-        </div>
-        
-        <div class="text-center mb-8">
-            <h1 class="text-xl font-bold mb-1 uppercase tracking-wide">HELLO ! Come On Sign In</h1>
-            <p class="text-teal-400 text-xs font-medium">Masuk ke akun mu untuk lihat update data terbaru</p>
+        <!-- Logo ATMI -->
+        <div class="flex justify-center mb-6">
+            <img src="{{ asset('img/logo-atmi.jpg') }}" alt="Logo ATMI Cikarang" class="h-20 w-auto rounded-xl shadow-lg border-2 border-white/30">
         </div>
 
-        @if(session()->has('loginError'))
-            <div class="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm mb-4 text-center">
-                {{ session('loginError') }}
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-white tracking-wide">HELLO ! Come On Sign In</h2>
+            <p class="text-teal-400 text-sm mt-1 font-medium">Masuk ke akun mu untuk lihat update data terbaru</p>
+        </div>
+
+        <!-- Alert Error (Mendukung session 'error' maupun 'loginError') -->
+        @if(session('error') || session('loginError'))
+            <div class="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-3 rounded-lg mb-6 text-sm text-center">
+                {{ session('error') ?? session('loginError') }}
             </div>
         @endif
 
-        <form action="/proses-login" method="POST" class="space-y-4">
+        <form action="/proses-login" method="POST">
             @csrf
-            <div>
-                <label class="block text-xs font-medium mb-1 text-gray-300">Email Perusahaan</label>
-                <input type="email" name="email" required class="w-full px-4 py-2.5 bg-[#1a2234]/80 border border-gray-600/50 rounded-lg focus:outline-none focus:border-teal-500 text-white placeholder-gray-500 text-sm">
+            
+            <div class="mb-5">
+                <label for="email" class="block text-gray-300 text-sm font-medium mb-2">Email Perusahaan</label>
+                <input type="email" id="email" name="email" required 
+                    class="w-full bg-[#0A192F]/50 border border-gray-500/50 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition placeholder-gray-500" 
+                    placeholder="nama@perusahaan.ac.id">
             </div>
-            <div>
-                <label class="block text-xs font-medium mb-1 text-gray-300">Kata Sandi</label>
-                <input type="password" name="password" required class="w-full px-4 py-2.5 bg-[#1a2234]/80 border border-gray-600/50 rounded-lg focus:outline-none focus:border-teal-500 text-white text-sm">
+            
+            <div class="mb-6">
+                <label for="password" class="block text-gray-300 text-sm font-medium mb-2">Kata Sandi</label>
+                <input type="password" id="password" name="password" required 
+                    class="w-full bg-[#0A192F]/50 border border-gray-500/50 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition placeholder-gray-500" 
+                    placeholder="••••••••">
             </div>
-            <button type="submit" class="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2.5 rounded-lg transition mt-4 text-sm tracking-wide">
-                LOGIN
-            </button>
-        </form>
+            
+            <div class="mb-6 mt-8">
+                <button type="submit" 
+                    class="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-500 transition duration-300 shadow-[0_0_15px_rgba(13,148,136,0.4)]">
+                    LOGIN
+                </button>
+            </div>
 
-        <p class="text-center text-xs text-gray-400 mt-6">Butuh bantuan? <a href="#" class="text-teal-400 hover:underline">Hubungi Admin</a></p>
+            <div class="text-center text-sm text-gray-400">
+                Butuh bantuan? <a href="#" class="text-teal-400 hover:text-teal-300 transition font-medium">Hubungi Admin</a>
+            </div>
+        </form>
     </div>
 
 </body>

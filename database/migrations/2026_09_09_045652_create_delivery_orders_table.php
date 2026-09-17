@@ -15,14 +15,16 @@ return new class extends Migration
             $table->date('tanggal_kirim');
             $table->string('driver')->nullable();
             $table->string('status')->default('On Progress');
+            $table->string('status_pengiriman')->nullable(); // Ditambahkan
+            $table->string('status_approval')->default('Pending'); // Ditambahkan
+            $table->text('catatan_approval')->nullable(); // Ditambahkan
             $table->text('keterangan')->nullable();
             $table->timestamps();
         });
-        
     }
 
-    public function down()
+    public function down(): void
     {
-        Schema::dropIfExists('deliveries');
+        Schema::dropIfExists('delivery_orders');
     }
 };
