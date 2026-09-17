@@ -80,11 +80,11 @@
                 <tbody>
                     @forelse($barangs ?? [] as $b)
                     <tr>
-                        <td class="px-3 fw-semibold text-primary">{{ $b->item_code ?? '-' }}</td>
-                        <td>{{ $b->name ?? '-' }}</td>
-                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ $b->category ?? '-' }}</span></td>
-                        <td class="fw-bold text-dark">{{ $b->stok ?? 0 }}</td>
-                        <td>{{ $b->unit ?? 'Pcs' }}</td>
+                        <td class="px-3 fw-semibold text-primary">{{ data_get($b, 'item_code', '-') }}</td>
+                        <td>{{ data_get($b, 'name', '-') }}</td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ data_get($b, 'category', '-') }}</span></td>
+                        <td class="fw-bold text-dark">{{ data_get($b, 'stok', 0) }}</td>
+                        <td>{{ data_get($b, 'unit', 'Pcs') }}</td>
                     </tr>
                     @empty
                     <tr>

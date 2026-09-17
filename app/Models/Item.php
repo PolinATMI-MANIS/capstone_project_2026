@@ -2,22 +2,39 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    protected $table = 'items'; // Sesuaikan nama tabel jika beda
+    use HasFactory;
 
-    protected $fillable = [
-        'item_code',
-        'name',
-        'category',
-        'unit',
-        'stok',          // Pastikan ini 'stok', bukan 'current_stock'
-        'stok_min',      // Sesuai input controller baru
-        'lokasi',        // Sesuai input controller baru
-        'harga',
-        'supplier',      // Sesuai input controller baru
-        'status',
+    protected $table = 'items';
+
+   protected $fillable = [
+    'item_code',
+    'name',
+    'category',
+    'unit',
+    'stok',
+    'stok_min',
+    'lokasi',
+    'supplier',
+    'harga',
+    'status',
+];
+
+    protected $casts = [
+        'stok' => 'integer',
+        'stok_min' => 'integer',
+        'harga' => 'decimal:2',
     ];
+
+    /**
+     * Relasi ke ItemRequest (One to Many)
+     */
+    public function itemRequests()
+    {
+        return $this->hasMany(ItemRequest::class, 'item_id');
+    }
 }

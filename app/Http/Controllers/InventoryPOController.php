@@ -6,20 +6,20 @@ use App\Models\InventoryPo;
 use App\Models\Item;
 use Illuminate\Http\Request;
 
-class InventoryPOController extends Controller
+class InventoryPoController extends Controller
 {
     public function index()
     {
         $inventoryPos = InventoryPo::with('item')->latest()->get();
         
-        return view('inventory.po.index', compact('inventoryPos'));
+        return view('inventory.PO.index', compact('inventoryPos'));
     }
 
     public function create()
     {
         $items = Item::all();
 
-        return view('inventory.po.create', compact('items'));
+        return view('inventory.PO.create', compact('items'));
     }
 
     public function store(Request $request)

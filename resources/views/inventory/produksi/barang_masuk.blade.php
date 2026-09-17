@@ -26,6 +26,14 @@
         background: rgba(255, 255, 255, 0.4) !important;
         backdrop-filter: blur(4px);
     }
+
+    /* Fix z-index modal dan dropdown agar tidak tertutup glassmorphism */
+    .modal {
+        z-index: 1055 !important;
+    }
+    .modal-backdrop {
+        z-index: 1050 !important;
+    }
 </style>
 @endpush
 
@@ -45,18 +53,13 @@
                 <i class="fa-solid fa-cart-arrow-down text-success me-2"></i>Form Transaksi Barang Masuk
             </h1>
         </div>
-        <div>
-            <a href="javascript:history.back()" class="btn btn-light border bg-white text-secondary px-3 py-2 fw-semibold shadow-sm rounded-3">
-                <i class="fa-solid fa-arrow-left me-2"></i>Kembali
-            </a>
-        </div>
     </div>
 
-    <!-- Form Utama -->
+<!-- Form Utama -->
     <form action="{{ route('inventory.produksi.barang_masuk.store') }}" method="POST" id="transactionForm">
         @csrf
         
-        <!-- CARD 1: INFORMASI HEADER TRANSAKSI (GLASS EFFECT) -->
+        <!-- CARD 1: INFORMASI HEADER TRANSAKSI -->
         <div class="card glass-card rounded-4 mb-4 overflow-hidden">
             <div class="card-header glass-header py-3 px-4 d-flex align-items-center">
                 <div class="bg-success bg-opacity-10 text-success rounded-3 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
@@ -124,7 +127,7 @@
             </div>
         </div>
 
-        <!-- CARD 2: RINCIAN DETAIL BARANG (GLASS EFFECT) -->
+        <!-- CARD 2: RINCIAN DETAIL BARANG -->
         <div class="card glass-card rounded-4 mb-4 overflow-hidden">
             <div class="card-header glass-header py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div class="d-flex align-items-center">
@@ -133,12 +136,17 @@
                     </div>
                     <div>
                         <h5 class="fw-bold text-dark mb-0">Rincian Detail Barang Masuk</h5>
-                        <p class="text-muted small mb-0">Ketik nama barang secara bebas atau pilih dari saran master data.</p>
+                        <p class="text-muted small mb-0">Pilih dari master barang untuk mengisi kode, kategori, satuan, harga, dan lokasi otomatis.</p>
                     </div>
                 </div>
-                <button type="button" class="btn btn-success btn-sm px-3 py-2 shadow-sm rounded-3 fw-semibold" id="addRow">
-                    <i class="fa-solid fa-plus me-1"></i> Tambah Baris Barang
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm px-3 py-2 shadow-sm rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+                        <i class="fa-solid fa-plus-circle me-1"></i> Tambah Master Barang Baru
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm px-3 py-2 shadow-sm rounded-3 fw-semibold" id="addRow">
+                        <i class="fa-solid fa-plus me-1"></i> Tambah Baris Barang
+                    </button>
+                </div>
             </div>
             
             <div class="card-body p-0">
@@ -146,78 +154,222 @@
                     <table class="table glass-table align-middle mb-0" id="detailTable">
                         <thead class="glass-header text-secondary text-uppercase fs-7" style="font-size: 0.75rem;">
                             <tr>
-                                <th class="py-3 px-4" style="width: 32%;">Nama Barang <span class="text-danger">*</span></th>
-                                <th class="py-3 px-3" style="width: 12%;">Qty <span class="text-danger">*</span></th>
-                                <th class="py-3 px-3" style="width: 15%;">Satuan</th>
-                                <th class="py-3 px-3" style="width: 18%;">Harga Satuan (Rp) <span class="text-danger">*</span></th>
-                                <th class="py-3 px-3" style="width: 18%;">Total Subtotal (Rp)</th>
-                                <th class="py-3 px-3 text-center" style="width: 5%;">Aksi</th>
+                                <th class="py-3 px-2" style="width: 10%;">Kode Barang</th>
+                                <th class="py-3 px-2" style="width: 16%;">Nama Barang <span class="text-danger">*</span></th>
+                                <th class="py-3 px-2" style="width: 12%;">Kategori</th>
+                                <th class="py-3 px-2" style="width: 7%;">Qty <span class="text-danger">*</span></th>
+                                <th class="py-3 px-2" style="width: 8%;">Satuan</th>
+                                <th class="py-3 px-2" style="width: 11%;">Lokasi Penyimpanan</th>
+                                <th class="py-3 px-2" style="width: 11%;">Harga Satuan (Rp) <span class="text-danger">*</span></th>
+                                <th class="py-3 px-2" style="width: 11%;">Subtotal (Rp)</th>
+                                <th class="py-3 px-2" style="width: 9%;">Keterangan</th>
+                                <th class="py-3 px-2 text-center" style="width: 5%;">Aksi</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            <tr>
-                                <td class="py-3 px-4">
-                                    <input type="text" name="detail[0][nama_barang]" class="form-control bg-white bg-opacity-75 barang-input shadow-none" list="listMasterBarang" placeholder="Ketik atau pilih nama barang..." required>
+                            <tr class="item-row">
+                                <!-- Kode Barang -->
+                                <td class="py-3 px-2">
+                                    <input type="text" name="items[0][kode_barang]" class="form-control bg-white bg-opacity-50 kode-input shadow-none fw-bold text-secondary" placeholder="Otomatis" readonly>
                                 </td>
-                                <td class="py-3 px-3">
-                                    <input type="number" name="detail[0][qty]" class="form-control bg-white bg-opacity-75 qty-input shadow-none" min="1" value="1" required>
+
+                                <!-- Nama Barang / Item ID -->
+                                <td class="py-3 px-2">
+                                    <select name="items[0][item_id]" class="form-select bg-white bg-opacity-75 barang-select shadow-none" required>
+                                        <option value="">-- Pilih dari Master Barang --</option>
+                                        @if(isset($barangs))
+                                            @foreach($barangs as $barang)
+                                                @php
+                                                    $idVal = $barang->id ?? $barang->barang_id;
+                                                    $kodeVal = $barang->code ?? $barang->kode_barang ?? $barang->kode;
+                                                    $namaVal = $barang->name ?? $barang->nama_barang ?? $barang->nama;
+                                                    $katVal  = $barang->category ?? $barang->kategori;
+                                                    $satVal  = $barang->unit ?? $barang->satuan;
+                                                    $hrgVal  = $barang->price ?? $barang->harga_beli ?? $barang->harga ?? 0;
+                                                    $lokVal  = $barang->lokasi_rak ?? $barang->lokasi ?? $barang->rak ?? $barang->location ?? '';
+                                                @endphp
+                                                <option value="{{ $idVal }}" 
+                                                    data-kode="{{ $kodeVal }}" 
+                                                    data-nama="{{ $namaVal }}" 
+                                                    data-kategori="{{ $katVal }}" 
+                                                    data-satuan="{{ $satVal }}" 
+                                                    data-harga="{{ $hrgVal }}" 
+                                                    data-lokasi="{{ $lokVal }}">
+                                                    [{{ $kodeVal }}] - {{ $namaVal }}
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    <input type="hidden" name="items[0][nama_barang]" class="nama-barang-hidden">
                                 </td>
-                                <td class="py-3 px-3">
-                                    <input type="text" name="detail[0][satuan]" class="form-control satuan-input bg-white bg-opacity-50 shadow-none" placeholder="Satuan" required>
+
+                                <!-- Kategori -->
+                                <td class="py-3 px-2">
+                                    <select name="items[0][category]" class="form-select bg-white bg-opacity-75 kategori-input shadow-none">
+                                        <option value="">-- Pilih Kategori --</option>
+                                        <option value="Raw Material">Raw Material</option>
+                                        <option value="Work In Process">Work In Process</option>
+                                        <option value="Finished Goods">Finished Goods</option>
+                                        <option value="MRO / Sparepart">MRO / Sparepart</option>
+                                        <option value="Packing Material">Packing Material</option>
+                                    </select>
                                 </td>
-                                <td class="py-3 px-3">
+
+                                <!-- Qty -->
+                                <td class="py-3 px-2">
+                                    <input type="number" name="items[0][qty]" class="form-control bg-white bg-opacity-75 qty-input shadow-none" min="1" value="1" required>
+                                </td>
+
+                                <!-- Satuan -->
+                                <td class="py-3 px-2">
+                                    <input type="text" name="items[0][satuan]" class="form-control satuan-input bg-white bg-opacity-50 shadow-none" placeholder="Satuan" required>
+                                </td>
+
+                                <!-- Lokasi -->
+                                <td class="py-3 px-2">
+                                    <input type="text" name="items[0][lokasi]" class="form-control bg-white bg-opacity-75 lokasi-input shadow-none" placeholder="Cth: Rak A-01">
+                                </td>
+
+                                <!-- Harga -->
+                                <td class="py-3 px-2">
                                     <input type="text" class="form-control bg-white bg-opacity-75 harga-input shadow-none" value="0" required>
-                                    <input type="hidden" name="detail[0][harga]" class="harga-hidden" value="0">
+                                    <input type="hidden" name="items[0][harga]" class="harga-hidden" value="0">
                                 </td>
-                                <td class="py-3 px-3">
+
+                                <!-- Subtotal -->
+                                <td class="py-3 px-2">
                                     <input type="text" class="form-control bg-white bg-opacity-50 total-display fw-bold text-dark shadow-none" readonly value="0">
                                 </td>
-                                <td class="py-3 px-3 text-center">
+
+                                <!-- Keterangan / Notes -->
+                                <td class="py-3 px-2">
+                                    <input type="text" name="items[0][notes]" class="form-control bg-white bg-opacity-75 shadow-none" placeholder="Ket...">
+                                </td>
+
+                                <!-- Aksi -->
+                                <td class="py-3 px-2 text-center">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-row rounded-3" disabled>
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </td>
                             </tr>
                         </tbody>
+
+                        <tfoot class="glass-header">
+                            <tr>
+                                <td colspan="7" class="text-end fw-bold py-3">GRAND TOTAL (Rp) :</td>
+                                <td colspan="3" class="py-3">
+                                    <input type="text" id="grandTotalDisplay" class="form-control fw-bold text-dark bg-white" readonly value="0">
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
             
             <div class="card-footer glass-header py-3 px-4 text-muted small">
-                <i class="fa-solid fa-circle-info text-primary me-1"></i> Pastikan harga dan kuantitas sudah sesuai sebelum menyimpan transaksi untuk memperbarui stok otomatis.
+                <i class="fa-solid fa-circle-info text-primary me-1"></i> Kode barang, kategori, satuan, harga, dan lokasi akan terisi otomatis mengikuti data yang ada di Master Barang.
             </div>
         </div>
 
         <!-- TOMBOL AKSI UTAMA -->
         <div class="d-flex justify-content-end align-items-center gap-3 mb-5">
-            <a href="javascript:history.back()" class="btn btn-light px-4 py-2 fw-semibold border rounded-3 text-secondary">
-                Batal
+            <a href="{{ route('inventory.produksi.index') }}" class="btn btn-light rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
             <button type="submit" class="btn btn-success px-5 py-2 fw-semibold shadow-sm rounded-3">
                 <i class="fa-solid fa-floppy-disk me-2"></i> Simpan Transaksi & Update Stock
             </button>
         </div>
     </form>
-</div>
 
-<!-- Datalist untuk opsi saran Master Barang secara opsional -->
-<datalist id="listMasterBarang">
-    @if(isset($barangs))
-        @foreach($barangs as $barang)
-            <option value="{{ $barang->name ?? $barang->nama_barang ?? $barang->nama }}" 
-                    data-satuan="{{ $barang->unit ?? $barang->satuan ?? 'Pcs' }}" 
-                    data-harga="{{ $barang->price ?? $barang->harga_beli ?? $barang->harga ?? 0 }}">
-            </option>
-        @endforeach
-    @endif
-</datalist>
+<!-- Modal Tambah Barang Baru -->
+<div class="modal fade" id="modalTambahBarang" tabindex="-1" aria-labelledby="modalTambahBarangLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTambahBarangLabel">Tambah Data Barang Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formTambahBarang" action="{{ route('inventory.produksi.master_barang.store') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Kode Barang / ID (Unik) <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control" placeholder="Contoh: BRG-001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Nama Barang (Wajib) <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="Nama barang" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Kategori (Wajib) <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select" required>
+                                <option value="">-- Pilih Kategori --</option>
+                                <option value="Raw Material">Raw Material</option>
+                                <option value="Work In Process">Work In Process</option>
+                                <option value="Finished Goods">Finished Goods</option>
+                                <option value="MRO / Sparepart">MRO / Sparepart</option>
+                                <option value="Packing Material">Packing Material</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Satuan (Valid) <span class="text-danger">*</span></label>
+                            <input type="text" name="unit" class="form-control" placeholder="Pcs" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Stok Saat Ini (Min: 0)</label>
+                            <input type="number" name="current_stock" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Stok Minimum (Min: 0)</label>
+                            <input type="number" name="stok_min" class="form-control" value="5">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Lokasi / Rak</label>
+                            <input type="text" name="lokasi_rak" class="form-control" placeholder="Contoh: Rak A-1">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Harga Satuan</label>
+                            <input type="number" name="price" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Supplier Utama</label>
+                            <input type="text" name="supplier_utama" class="form-control" placeholder="Nama supplier utama">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold text-secondary small text-uppercase">Status Aktif</label>
+                            <select name="status" class="form-select">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Non-Aktif">Non-Aktif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnSimpanBarang">Simpan ke DB Barang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let table = document.getElementById('detailTable').getElementsByTagName('tbody')[0];
-        let rowIndex = 1; 
+        let tableBody = document.getElementById('detailTable').getElementsByTagName('tbody')[0];
 
         function formatRupiah(angka) {
             let number_string = angka.toString().replace(/[^,\d]/g, ''),
@@ -234,113 +386,51 @@
             return split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
         }
 
-        document.getElementById('addRow').addEventListener('click', function () {
-            let newRow = table.insertRow();
-            
-            newRow.innerHTML = `
-                <td class="py-3 px-4">
-                    <input type="text" name="detail[${rowIndex}][nama_barang]" class="form-control bg-white bg-opacity-75 barang-input shadow-none" list="listMasterBarang" placeholder="Ketik atau pilih nama barang..." required>
-                </td>
-                <td class="py-3 px-3">
-                    <input type="number" name="detail[${rowIndex}][qty]" class="form-control bg-white bg-opacity-75 qty-input shadow-none" min="1" value="1" required>
-                </td>
-                <td class="py-3 px-3">
-                    <input type="text" name="detail[${rowIndex}][satuan]" class="form-control satuan-input bg-white bg-opacity-50 shadow-none" placeholder="Satuan" required>
-                </td>
-                <td class="py-3 px-3">
-                    <input type="text" class="form-control bg-white bg-opacity-75 harga-input shadow-none" value="0" required>
-                    <input type="hidden" name="detail[${rowIndex}][harga]" class="harga-hidden" value="0">
-                </td>
-                <td class="py-3 px-3">
-                    <input type="text" class="form-control bg-white bg-opacity-50 total-display fw-bold text-dark shadow-none" readonly value="0">
-                </td>
-                <td class="py-3 px-3 text-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-row rounded-3">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </td>
-            `;
+        function calculateGrandTotal() {
+            let totalRows = tableBody.querySelectorAll('tr');
+            let grandTotal = 0;
 
-            initRowEvents(newRow);
-            rowIndex++;
-            reindexRows();
-            updateDeleteButtons();
-        });
-
-        function initRowEvents(row) {
-            let barangInput = row.querySelector('.barang-input');
-            let qtyInput = row.querySelector('.qty-input');
-            let satuanInput = row.querySelector('.satuan-input');
-            let hargaInput = row.querySelector('.harga-input');
-            let hargaHidden = row.querySelector('.harga-hidden');
-            let totalDisplay = row.querySelector('.total-display');
-            let removeBtn = row.querySelector('.remove-row');
-
-            barangInput.addEventListener('input', function () {
-                let val = this.value;
-                let options = document.getElementById('listMasterBarang').options;
-                
-                for (let i = 0; i < options.length; i++) {
-                    if (options[i].value === val) {
-                        let satuan = options[i].getAttribute('data-satuan');
-                        let harga = options[i].getAttribute('data-harga');
-
-                        satuanInput.value = satuan || '';
-                        let cleanHarga = harga ? Math.round(parseFloat(harga)) : 0;
-                        hargaInput.value = formatRupiah(cleanHarga);
-                        hargaHidden.value = cleanHarga;
-                        calculate();
-                        return;
-                    }
-                }
+            totalRows.forEach(row => {
+                let qty = parseFloat(row.querySelector('.qty-input')?.value) || 0;
+                let harga = parseFloat(row.querySelector('.harga-hidden')?.value) || 0;
+                grandTotal += (qty * harga);
             });
 
-            function calculate() {
-                let qty = parseFloat(qtyInput.value) || 0;
-                let harga = parseFloat(hargaHidden.value) || 0;
-                let total = Math.round(qty * harga);
-
-                totalDisplay.value = formatRupiah(total);
+            let grandTotalDisplay = document.getElementById('grandTotalDisplay');
+            if (grandTotalDisplay) {
+                grandTotalDisplay.value = formatRupiah(Math.round(grandTotal));
             }
-
-            hargaInput.addEventListener('keyup', function () {
-                let cleanVal = this.value.replace(/[^0-9]/g, '');
-                let parsedVal = cleanVal === '' ? 0 : parseInt(cleanVal, 10);
-                
-                hargaInput.value = formatRupiah(parsedVal);
-                hargaHidden.value = parsedVal;
-                calculate();
-            });
-
-            qtyInput.addEventListener('input', calculate);
-
-            removeBtn.onclick = function () {
-                if (table.rows.length > 1) {
-                    row.remove();
-                    reindexRows();
-                    updateDeleteButtons();
-                }
-            };
         }
 
-        // Fungsi reindex input name biar array detail[0], detail[1], dst. urut rapi saat disubmit ke backend
         function reindexRows() {
-            let rows = table.querySelectorAll('tr');
+            let rows = tableBody.querySelectorAll('tr');
             rows.forEach((row, index) => {
-                let namaBarang = row.querySelector('input[name*="[nama_barang]"]');
+                let barangSelect = row.querySelector('select[name*="[item_id]"]');
+                let barangIdHidden = row.querySelector('input[name*="[barang_id]"]');
+                let namaBarangHidden = row.querySelector('input[name*="[nama_barang]"]');
+                let kodeBarang = row.querySelector('input[name*="[kode_barang]"]');
+                let kategori = row.querySelector('select[name*="[category]"]');
                 let qty = row.querySelector('input[name*="[qty]"]');
                 let satuan = row.querySelector('input[name*="[satuan]"]');
+                let lokasi = row.querySelector('input[name*="[lokasi]"]');
                 let harga = row.querySelector('input[name*="[harga]"]');
+                let keterangan = row.querySelector('input[name*="[notes]"]');
 
-                if (namaBarang) namaBarang.name = `detail[${index}][nama_barang]`;
-                if (qty) qty.name = `detail[${index}][qty]`;
-                if (satuan) satuan.name = `detail[${index}][satuan]`;
-                if (harga) harga.name = `detail[${index}][harga]`;
+                if (barangSelect) barangSelect.name = `items[${index}][item_id]`;
+                if (barangIdHidden) barangIdHidden.name = `items[${index}][barang_id]`;
+                if (namaBarangHidden) namaBarangHidden.name = `items[${index}][nama_barang]`;
+                if (kodeBarang) kodeBarang.name = `items[${index}][kode_barang]`;
+                if (kategori) kategori.name = `items[${index}][category]`;
+                if (qty) qty.name = `items[${index}][qty]`;
+                if (satuan) satuan.name = `items[${index}][satuan]`;
+                if (lokasi) lokasi.name = `items[${index}][lokasi]`;
+                if (harga) harga.name = `items[${index}][harga]`;
+                if (keterangan) keterangan.name = `items[${index}][notes]`;
             });
         }
 
         function updateDeleteButtons() {
-            let rows = table.querySelectorAll('tr');
+            let rows = tableBody.querySelectorAll('tr');
             rows.forEach((row) => {
                 let removeBtn = row.querySelector('.remove-row');
                 if (removeBtn) {
@@ -349,10 +439,158 @@
             });
         }
 
-        if (table.rows.length > 0) {
-            initRowEvents(table.rows[0]);
+        function initRowEvents(row) {
+            let barangSelect = row.querySelector('.barang-select');
+            let barangIdHidden = row.querySelector('.barang-id-hidden');
+            let namaBarangHidden = row.querySelector('.nama-barang-hidden');
+            let kodeInput = row.querySelector('.kode-input');
+            let kategoriSelect = row.querySelector('.kategori-input');
+            let qtyInput = row.querySelector('.qty-input');
+            let satuanInput = row.querySelector('.satuan-input');
+            let lokasiInput = row.querySelector('.lokasi-input');
+            let hargaInput = row.querySelector('.harga-input');
+            let hargaHidden = row.querySelector('.harga-hidden');
+            let totalDisplay = row.querySelector('.total-display');
+            let removeBtn = row.querySelector('.remove-row');
+
+            if (barangSelect) {
+                barangSelect.addEventListener('change', function () {
+                    let selectedOption = this.options[this.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        let barangId = selectedOption.value;
+                        let kode = selectedOption.getAttribute('data-kode') || '';
+                        let nama = selectedOption.getAttribute('data-nama') || '';
+                        let kategori = selectedOption.getAttribute('data-kategori') || '';
+                        let satuan = selectedOption.getAttribute('data-satuan') || 'Pcs';
+                        let harga = selectedOption.getAttribute('data-harga') || 0;
+                        let lokasi = selectedOption.getAttribute('data-lokasi') || '';
+
+                        if (barangIdHidden) barangIdHidden.value = barangId;
+                        if (namaBarangHidden) namaBarangHidden.value = nama;
+                        if (kodeInput) kodeInput.value = kode;
+                        if (kategoriSelect && kategori) kategoriSelect.value = kategori;
+                        if (satuanInput) satuanInput.value = satuan;
+                        if (lokasiInput) lokasiInput.value = lokasi;
+
+                        let cleanHarga = harga ? Math.round(parseFloat(harga)) : 0;
+                        if (hargaInput) hargaInput.value = formatRupiah(cleanHarga);
+                        if (hargaHidden) hargaHidden.value = cleanHarga;
+                        calculateRow();
+                    } else {
+                        if (barangIdHidden) barangIdHidden.value = '';
+                        if (namaBarangHidden) namaBarangHidden.value = '';
+                        if (kodeInput) kodeInput.value = '';
+                        if (satuanInput) satuanInput.value = '';
+                        if (lokasiInput) lokasiInput.value = '';
+                        if (hargaInput) hargaInput.value = '0';
+                        if (hargaHidden) hargaHidden.value = '0';
+                        calculateRow();
+                    }
+                });
+            }
+
+            function calculateRow() {
+                let qty = parseFloat(qtyInput?.value) || 0;
+                let harga = parseFloat(hargaHidden?.value) || 0;
+                let total = Math.round(qty * harga);
+
+                if (totalDisplay) totalDisplay.value = formatRupiah(total);
+                calculateGrandTotal();
+            }
+
+            if (hargaInput) {
+                hargaInput.addEventListener('keyup', function () {
+                    let cleanVal = this.value.replace(/[^0-9]/g, '');
+                    let parsedVal = cleanVal === '' ? 0 : parseInt(cleanVal, 10);
+                    
+                    hargaInput.value = formatRupiah(parsedVal);
+                    hargaHidden.value = parsedVal;
+                    calculateRow();
+                });
+            }
+
+            if (qtyInput) {
+                qtyInput.addEventListener('input', calculateRow);
+            }
+
+            if (removeBtn) {
+                removeBtn.onclick = function () {
+                    if (tableBody.rows.length > 1) {
+                        row.remove();
+                        reindexRows();
+                        updateDeleteButtons();
+                        calculateGrandTotal();
+                    }
+                };
+            }
         }
-        updateDeleteButtons();
+
+        if (tableBody.rows.length > 0) {
+            initRowEvents(tableBody.rows[0]);
+            updateDeleteButtons();
+        }
+
+        // Tambah Baris Baru
+        document.getElementById('addRow').addEventListener('click', function () {
+            let firstRowSelect = tableBody.rows[0].querySelector('.barang-select');
+            let optionsHTML = firstRowSelect ? firstRowSelect.innerHTML : '<option value="">-- Pilih dari Master Barang --</option>';
+            
+            let newRow = tableBody.insertRow();
+            let newIndex = tableBody.rows.length - 1;
+            
+            newRow.classList.add('item-row');
+            newRow.innerHTML = `
+                <td class="py-3 px-2">
+                    <input type="text" name="items[${newIndex}][kode_barang]" class="form-control bg-white bg-opacity-50 kode-input shadow-none fw-bold text-secondary" placeholder="Otomatis" readonly>
+                    <input type="hidden" name="items[${newIndex}][barang_id]" class="barang-id-hidden">
+                </td>
+                <td class="py-3 px-2">
+                    <select name="items[${newIndex}][item_id]" class="form-select bg-white bg-opacity-75 barang-select shadow-none" required>
+                        ${optionsHTML}
+                    </select>
+                    <input type="hidden" name="items[${newIndex}][nama_barang]" class="nama-barang-hidden">
+                </td>
+                <td class="py-3 px-2">
+                    <select name="items[${newIndex}][category]" class="form-select bg-white bg-opacity-75 kategori-input shadow-none">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="Raw Material">Raw Material</option>
+                        <option value="Work In Process">Work In Process</option>
+                        <option value="Finished Goods">Finished Goods</option>
+                        <option value="MRO / Sparepart">MRO / Sparepart</option>
+                        <option value="Packing Material">Packing Material</option>
+                    </select>
+                </td>
+                <td class="py-3 px-2">
+                    <input type="number" name="items[${newIndex}][qty]" class="form-control bg-white bg-opacity-75 qty-input shadow-none" min="1" value="1" required>
+                </td>
+                <td class="py-3 px-2">
+                    <input type="text" name="items[${newIndex}][satuan]" class="form-control satuan-input bg-white bg-opacity-50 shadow-none" placeholder="Satuan" required>
+                </td>
+                <td class="py-3 px-2">
+                    <input type="text" name="items[${newIndex}][lokasi]" class="form-control bg-white bg-opacity-75 lokasi-input shadow-none" placeholder="Cth: Rak A-01">
+                </td>
+                <td class="py-3 px-2">
+                    <input type="text" class="form-control bg-white bg-opacity-75 harga-input shadow-none" value="0" required>
+                    <input type="hidden" name="items[${newIndex}][harga]" class="harga-hidden" value="0">
+                </td>
+                <td class="py-3 px-2">
+                    <input type="text" class="form-control bg-white bg-opacity-50 total-display fw-bold text-dark shadow-none" readonly value="0">
+                </td>
+                <td class="py-3 px-2">
+                    <input type="text" name="items[${newIndex}][notes]" class="form-control bg-white bg-opacity-75 shadow-none" placeholder="Ket...">
+                </td>
+                <td class="py-3 px-2 text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-row rounded-3">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+
+            initRowEvents(newRow);
+            reindexRows();
+            updateDeleteButtons();
+            calculateGrandTotal();
+        });
     });
 </script>
 @endpush

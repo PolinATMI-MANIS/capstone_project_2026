@@ -1,5 +1,17 @@
 @extends('layouts.app')
 
+@php
+    $queryParams = request()->all();
+    $isIndex = request()->routeIs('inventory.produksi.index');
+    $isMaster = request()->routeIs('inventory.produksi.master');
+    $isBarangMasuk = request()->routeIs('inventory.produksi.barang_masuk');
+    $isBarangKeluar = request()->routeIs('inventory.produksi.barang_keluar');
+    $isLaporan = request()->routeIs('inventory.produksi.laporan');
+    $valTanggalMulai = request('tanggal_mulai', date('Y-m-01'));
+    $valTanggalSelesai = request('tanggal_selesai', date('Y-m-d'));
+    $valJenis = request('jenis');
+@endphp
+
 @section('content')
 <div class="container-fluid px-4 py-4">
     <!-- Top Header Banner Card (Ditambahkan position-relative & z-index agar dropdown tidak tertutup) -->
@@ -28,17 +40,17 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item py-2 px-3 text-danger fw-semibold" href="{{ route('inventory.produksi.laporan.pdf', request()->all()) }}" target="_blank">
+                            <a class="dropdown-item py-2 px-3 text-danger fw-semibold" href="{{ route('inventory.produksi.laporan.pdf', $queryParams) }}" target="_blank">
                                 <i class="fa-solid fa-file-pdf me-2"></i> Export ke PDF
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 px-3 text-success fw-semibold" href="{{ route('inventory.produksi.laporan.excel', request()->all()) }}">
+                            <a class="dropdown-item py-2 px-3 text-success fw-semibold" href="{{ route('inventory.produksi.laporan.excel', $queryParams) }}">
                                 <i class="fa-solid fa-file-excel me-2"></i> Export ke Excel
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item py-2 px-3 text-primary fw-semibold" href="{{ route('inventory.produksi.laporan.word', request()->all()) }}">
+                            <a class="dropdown-item py-2 px-3 text-primary fw-semibold" href="{{ route('inventory.produksi.laporan.word', $queryParams) }}">
                                 <i class="fa-solid fa-file-word me-2"></i> Export ke Word
                             </a>
                         </li>
@@ -51,29 +63,27 @@
     <!-- Main Navigation Links -->
     <ul class="nav nav-pills gap-2 mb-4">
         <li class="nav-item">
-            <a href="{{ route('inventory.produksi.index') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.index') ? 'active' : '' }}">
+            <a href="{{ route('inventory.produksi.index') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ $isIndex ? 'active' : '' }}">
                 <i class="fa-solid fa-house"></i> Dashboard Utama
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('inventory.produksi.master') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.master') ? 'active' : '' }}">
+            <a href="{{ route('inventory.produksi.master') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ $isMaster ? 'active' : '' }}">
                 <i class="fa-solid fa-boxes-stacked"></i> Master Data
             </a>
         </li>
         <li class="nav-item">
-            <!-- Diubah menggunakan underscore '_' agar sesuai dengan route web.php -->
-            <a href="{{ route('inventory.produksi.barang_masuk') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.barang_masuk') ? 'active' : '' }}">
+            <a href="{{ route('inventory.produksi.barang_masuk') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ $isBarangMasuk ? 'active' : '' }}">
                 <i class="fa-solid fa-truck-ramp-box"></i> Barang Masuk
             </a>
         </li>
         <li class="nav-item">
-            <!-- Diubah menggunakan underscore '_' agar sesuai dengan route web.php -->
-            <a href="{{ route('inventory.produksi.barang_keluar') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.barang_keluar') ? 'active' : '' }}">
+            <a href="{{ route('inventory.produksi.barang_keluar') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ $isBarangKeluar ? 'active' : '' }}">
                 <i class="fa-solid fa-dolly"></i> Barang Keluar
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('inventory.produksi.laporan') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.laporan') ? 'active' : '' }}">
+            <a href="{{ route('inventory.produksi.laporan') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ $isLaporan ? 'active' : '' }}">
                 <i class="fa-solid fa-file-lines"></i> Stok & Laporan
             </a>
         </li>
@@ -85,18 +95,18 @@
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label fw-semibold text-secondary small text-uppercase">Dari Tanggal</label>
-                    <input type="date" name="tanggal_mulai" class="form-control bg-white shadow-none" value="{{ request('tanggal_mulai', date('Y-m-01')) }}">
+                    <input type="date" name="tanggal_mulai" class="form-control bg-white shadow-none" value="{{ $valTanggalMulai }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold text-secondary small text-uppercase">Sampai Tanggal</label>
-                    <input type="date" name="tanggal_selesai" class="form-control bg-white shadow-none" value="{{ request('tanggal_selesai', date('Y-m-d')) }}">
+                    <input type="date" name="tanggal_selesai" class="form-control bg-white shadow-none" value="{{ $valTanggalSelesai }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-semibold text-secondary small text-uppercase">Jenis Transaksi</label>
                     <select name="jenis" class="form-select bg-white shadow-none">
                         <option value="">Semua (Masuk & Keluar)</option>
-                        <option value="masuk" {{ request('jenis') == 'masuk' ? 'selected' : '' }}>Barang Masuk</option>
-                        <option value="keluar" {{ request('jenis') == 'keluar' ? 'selected' : '' }}>Barang Keluar</option>
+                        <option value="masuk" {{ $valJenis == 'masuk' ? 'selected' : '' }}>Barang Masuk</option>
+                        <option value="keluar" {{ $valJenis == 'keluar' ? 'selected' : '' }}>Barang Keluar</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -128,31 +138,41 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($laporans ?? [] as $l)
-                    <tr>
-                        <td class="px-3 text-secondary">{{ $l->date ?? $l->created_at ?? '-' }}</td>
-                        <td class="fw-semibold text-dark">{{ $l->no_transaksi ?? $l->id ?? '-' }}</td>
-                        <td>
-                            @if(($l->type ?? '') == 'IN')
-                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Masuk</span>
-                            @else
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Keluar</span>
-                            @endif
-                        </td>
-                        <td>{{ $l->keterangan ?? '-' }}</td>
-                        <td class="text-muted">{{ $l->admin ?? $l->user->name ?? '-' }}</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <div class="py-4">
-                                <i class="fa-solid fa-folder-open fa-2x mb-2 opacity-50"></i>
-                                <p class="mb-0 small">Belum ada data transaksi pada rentang tanggal tersebut.</p>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
+    @forelse($laporans ?? [] as $l)
+    <tr>
+        <td class="px-3 text-secondary">{{ data_get($l, 'date') ?? data_get($l, 'created_at') ?? '-' }}</td>
+        <td class="fw-semibold text-dark">{{ data_get($l, 'no_transaksi') ?? data_get($l, 'id') ?? '-' }}</td>
+        <td>
+            @if((data_get($l, 'type') ?? '') == 'IN')
+                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Masuk</span>
+            @else
+                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Keluar</span>
+            @endif
+        </td>
+        <td>{{ data_get($l, 'keterangan') ?? '-' }}</td>
+        <td class="text-muted">
+            @php
+                $adminName = '-';
+                if (is_object($l)) {
+                    $adminName = $l->admin ?? optional($l->user)->name ?? '-';  
+                } elseif (is_array($l)) {
+                    $adminName = $l['admin'] ?? $l['user']['name'] ?? '-';
+                }
+            @php
+            {{ $adminName }}
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="5" class="text-center py-5 text-muted">
+            <div class="py-4">
+                <i class="fa-solid fa-folder-open fa-2x mb-2 opacity-50"></i>
+                <p class="mb-0 small">Belum ada data transaksi pada rentang tanggal tersebut.</p>
+            </div>
+        </td>
+    </tr>
+    @endforelse
+</tbody>
             </table>
         </div>
     </div>

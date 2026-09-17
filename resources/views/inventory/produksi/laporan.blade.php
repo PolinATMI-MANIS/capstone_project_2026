@@ -2,8 +2,12 @@
 
 @section('content')
 <div class="container-fluid px-4 py-4">
+
+    <!-- Panggil Komponen Notifikasi Toast -->
+    <x-notification />
+
     <!-- Top Header Banner Card -->
-    <div class="card border-0 shadow-sm rounded-4 glass-card p-4 mb-4" style="position: relative; z-index: 10;">
+    <div class="card border-0 shadow-sm rounded-4 glass-card p-4 mb-4 d-print-none" style="position: relative; z-index: 10;">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-flex align-items-center">
                 <div class="flex-shrink-0 bg-success bg-opacity-10 text-success p-3 rounded-3 me-3">
@@ -28,11 +32,6 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item py-2 px-3 text-danger fw-semibold" href="{{ route('inventory.produksi.laporan.pdf', request()->all()) }}" target="_blank">
-                                <i class="fa-solid fa-file-pdf me-2"></i> Export ke PDF
-                            </a>
-                        </li>
-                        <li>
                             <a class="dropdown-item py-2 px-3 text-success fw-semibold" href="{{ route('inventory.produksi.laporan.excel', request()->all()) }}">
                                 <i class="fa-solid fa-file-excel me-2"></i> Export ke Excel
                             </a>
@@ -49,7 +48,7 @@
     </div>
 
     <!-- Main Navigation Links -->
-    <ul class="nav nav-pills gap-2 mb-4">
+    <ul class="nav nav-pills gap-2 mb-4 d-print-none">
         <li class="nav-item">
             <a href="{{ route('inventory.produksi.index') }}" class="nav-link px-4 py-2 rounded-pill fw-semibold d-flex align-items-center gap-2 tab-custom {{ request()->routeIs('inventory.produksi.index') ? 'active' : '' }}">
                 <i class="fa-solid fa-house"></i> Dashboard Utama
@@ -78,7 +77,7 @@
     </ul>
 
     <!-- Filter Card Container -->
-    <div class="card border-0 shadow-sm rounded-4 glass-card p-4 mb-4">
+    <div class="card border-0 shadow-sm rounded-4 glass-card p-4 mb-4 d-print-none">
         <form action="{{ route('inventory.produksi.laporan') }}" method="GET">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -108,6 +107,14 @@
 
     <!-- Main Content Table Container -->
     <div class="card border-0 shadow-sm rounded-4 glass-card p-4">
+        <!-- Judul Khusus Saat Diprint -->
+        <div class="d-none d-print-block mb-3 text-center border-bottom pb-3">
+            <h4 class="fw-bold mb-1">REKAPITULASI STOK & LAPORAN TRANSAKSI PRODUKSI</h4>
+            <p class="text-muted small mb-0">
+                Periode: {{ request('tanggal_mulai', date('Y-m-01')) }} s/d {{ request('tanggal_selesai', date('Y-m-d')) }}
+            </p>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
             <div>
                 <h5 class="fw-bold text-dark mb-0">Riwayat Mutasi & Laporan</h5>
@@ -132,31 +139,32 @@
                     <tr>
                         <td class="px-3 text-secondary">{{ $index + 1 }}</td>
                         <td class="text-secondary">
-                            {{ $l->created_at ? $l->created_at->format('Y-m-d H:i:s') : '-' }} 
+                            @php $createdAt = data_get($l, 'created_at'); @endphp
+                            {{ $createdAt ? (\Carbon\Carbon::parse($createdAt)->format('Y-m-d H:i:s')) : '-' }}
                         </td>
                         <td class="fw-semibold text-dark">
-                            {{ $l->request_code ?? ('TRX-' . $l->id) }} 
+                            {{ data_get($l, 'request_code', 'TRX-' . data_get($l, 'id')) }}
                         </td>
                         <td>
                             @php
-                                $typeVal = strtolower($l->type ?? '');
+                                $typeVal = strtolower(data_get($l, 'type', ''));
                             @endphp
                             @if(in_array($typeVal, ['in', 'masuk']))
-                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">MASUK</span> 
+                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">MASUK</span>  
                             @elseif(in_array($typeVal, ['out', 'keluar']))
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">KELUAR</span> 
+                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">KELUAR</span>  
                             @else
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ strtoupper($l->type ?? '-') }}</span> 
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ strtoupper(data_get($l, 'type', '-')) }}</span>  
                             @endif
                         </td>
                         <td class="text-dark fw-medium">
-                            {{ $l->nama_barang ?? optional($l->item)->name ?? '-' }} 
+                            {{ data_get($l, 'nama_barang') ?? data_get($l, 'item.name') ?? '-' }}  
                         </td>
                         <td>
-                            {{ $l->qty ?? 0 }} {{ $l->satuan ?? optional($l->item)->unit ?? '' }}
+                            {{ data_get($l, 'qty', 0) }} {{ data_get($l, 'satuan') ?? data_get($l, 'item.unit') ?? '' }}
                         </td>
                         <td>
-                            {{ $l->notes ?? '-' }} 
+                            {{ data_get($l, 'notes', '-') }}  
                         </td>
                     </tr>
                     @empty
@@ -210,6 +218,35 @@
         background: #ff6600 !important;
         border-color: #ff6600 !important;
         box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+    }
+
+    /* Print / PDF Styling */
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
+        aside, nav, .navbar, .sidebar, .d-print-none {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            padding: 0 !important;
+        }
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .table th, .table td {
+            border: 1px solid #dee2e6 !important;
+            color: #000000 !important;
+        }
     }
 </style>
 @endsection
