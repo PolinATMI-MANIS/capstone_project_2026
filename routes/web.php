@@ -116,6 +116,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'])->name('reject_spk');
         Route::post('/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('request_delete');
         Route::post('/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('approve_delete');
+        
+        // TOMBOL KIRIM KE RESOURCES DITAMBAHKAN DI SINI
+        Route::post('/{id}/send-to-resources', [ProduksiController::class, 'sendToResources'])->name('send_to_resources');
     });
 
 

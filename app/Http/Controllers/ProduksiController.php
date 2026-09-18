@@ -247,4 +247,21 @@ class ProduksiController extends Controller
         $order->update(['status' => 'Proses Produksi Berjalan', 'keterangan' => $keteranganUpdate]);
         return redirect()->back()->with('success', 'Masalah diselesaikan. Mesin kembali beroperasi.');
     }
+
+    // --- FUNGSI BARU: APPROVE DAN KIRIM KE RESOURCES ---
+    public function sendToResources($id) 
+    {
+        $order = ProductionOrder::findOrFail($id);
+        
+        $catatan = "➡️ [FORWARDED] " . now()->format('d M H:i') . " - Order diteruskan ke modul Resources.";
+        $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatan : $catatan;
+
+        // Ubah status ke "Waiting for Process"
+        $order->update([
+            'status' => 'Waiting for Process', 
+            'keterangan' => $keteranganUpdate
+        ]);
+
+        return redirect()->back()->with('success', 'Order berhasil di-approve dan dipindahkan ke antrean Resources (Waiting for Process).');
+    }
 }

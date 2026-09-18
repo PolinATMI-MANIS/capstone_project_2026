@@ -193,11 +193,21 @@
                                         @endif
 
                                         <!-- HAK AKSES SUPER ADMIN -->
-                                        @if(isset($role) && $role == 'super_admin' && $order->status == 'Menunggu Dihapus')
+                                        @if(isset($role) && ($role == 'super_admin' || $role == 'superadmin') && $order->status == 'Menunggu Dihapus')
                                             <form action="{{ route('produksi.approve_delete', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                                 @csrf 
                                                 <button type="submit" onclick="return confirm('Hapus data ini secara permanen?')" class="btn btn-sm btn-danger fw-semibold border">
                                                     <i class="fa-solid fa-trash me-1"></i> Setuju Hapus
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        <!-- TOMBOL KIRIM KE RESOURCES -->
+                                        @if((isset($role) && in_array($role, ['super_admin', 'superadmin', 'admin'])) && $order->status == 'Menunggu Bahan Baku')
+                                            <form action="{{ route('produksi.send_to_resources', $order->id) }}" method="POST" class="d-inline m-0 p-0">
+                                                @csrf 
+                                                <button type="submit" class="btn btn-sm btn-light border text-primary" title="Kirim ke Resources" onclick="return confirm('Kirim order ini ke antrean Resources?')">
+                                                    <i class="fa-solid fa-check-to-slot"></i>
                                                 </button>
                                             </form>
                                         @endif
