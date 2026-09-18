@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,7 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
+        'role', // <--- Ditambahkan agar role bisa diisi
     ];
 
     /**
@@ -44,17 +43,19 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // Tambahkan fungsi ini di dalam class User
-    public function getRoleAttribute()
+    // --- HELPER METHOD ROLE ---
+    public function isSuperAdmin(): bool
     {
-        // Tentukan email untuk masing-masing role di sini
-        if ($this->email === 'superadmin@capstone.com') {
-            return 'superadmin';
-        } elseif ($this->email === 'admin@capstone.com') {
-            return 'admin';
-        } else {
-            // Selain email di atas, otomatis dianggap sebagai User biasa
-            return 'user';
-        }
+        return $this->role === 'superadmin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
     }
 }

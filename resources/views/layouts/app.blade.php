@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resources - Capstone Project</title>
+    
+    <!-- Bootstrap CSS (Menggunakan versi 5.3.2) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
@@ -146,7 +149,7 @@
         
         <div class="sidebar-category">Modules</div>
         
-        <!-- List Menu Bersih Tanpa Duplikat -->
+        <!-- List Menu Bersih (Gabungan dari branch utama dan rnd) -->
         <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
@@ -156,18 +159,17 @@
         <a href="/inventory" class="{{ Request::is('inventory*') ? 'active' : '' }}">
             <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </a>
-        <!-- Arahkan href ke URL/Route Hub -->
         <a href="/purchase-delivery" class="nav-link d-flex justify-content-between align-items-center {{ request()->is('purchase-delivery*') ? 'active' : '' }}">
             <div>
                 <i class="fa-solid fa-cart-shopping me-2"></i>
                 <span>Purchase & Delivery</span>
             </div>
         </a>
-        <a href="/rnd" class="{{ Request::is('rnd*') ? 'active' : '' }}">
-            <i class="fa-solid fa-flask"></i> RnD
+        <a href="{{ route('rnd.index') }}" class="nav-link {{ request()->is('rnd*') ? 'active' : '' }}">
+            <i class="fa-solid fa-flask me-2"></i> RnD
         </a>
-        <a href="/resources" class="{{ Request::is('resources*') ? 'active' : '' }}">
-            <i class="fa-solid fa-users-gear"></i> Resources
+        <a href="{{ route('man-power.index') }}" class="nav-link {{ request()->is('man-power*') ? 'active' : '' }}">
+            <i class="fa-solid fa-people-group me-2"></i> Resources
         </a>
 
         <!-- Footer / Support Box -->
@@ -191,7 +193,8 @@
         @yield('content')
     </div>
 
-    <!-- Cukup pakai 1 script Bootstrap terbaru -->
+    <!-- Script JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>
