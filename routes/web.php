@@ -33,7 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
-    // Modul RnD (Fitur Kamu)
+    // Modul RnD
     Route::prefix('rnd')->name('rnd.')->group(function () {
         Route::get('/', [RnDfeatureController::class, 'index'])->name('index');
         Route::get('/create', [RnDfeatureController::class, 'create'])->name('create');
@@ -43,7 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [RnDfeatureController::class, 'destroy'])->name('destroy');
     });
 
-    // Modul Resources - Man Power (Fitur Temanmu)
+    // Modul Resources - Man Power
     Route::get('/man-power', [ManPowerController::class, 'index'])->name('man-power.index');
     Route::get('/man-power/create', [ManPowerController::class, 'create'])->name('man-power.create');
     Route::post('/man-power', [ManPowerController::class, 'store'])->name('man-power.store');
@@ -52,9 +52,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/man-power/{manPower}', [ManPowerController::class, 'update']);
     Route::post('/man-power/{manPower}/update-process', [ManPowerController::class, 'update'])->name('man-power.update-process');
     Route::delete('/man-power/{manPower}', [ManPowerController::class, 'destroy'])->name('man-power.destroy');
-    Route::patch('/man-power/{id}/update-status', [ManPowerController::class, 'updateStatus']);
+    Route::patch('/man-power/{id}/update-status', [ManPowerController::class, 'updateStatus'])->name('man-power.update-status');
 
-    // Modul Resources - Machine Power (Fitur Temanmu)
+    // Modul Resources - Machine Power
     Route::get('/machine-power', [MachinePowerController::class, 'index'])->name('machine-power.index');
     Route::get('/machine-power/create', [MachinePowerController::class, 'create'])->name('machine-power.create');
     Route::post('/machine-power', [MachinePowerController::class, 'store'])->name('machine-power.store');
@@ -98,9 +98,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/produksi/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('produksi.approve_delete');
     });
 
-    // RUTE KHUSUS Super Admin Saja
+    /// RUTE KHUSUS Super Admin Saja
     Route::middleware('role:super_admin')->group(function () {
-        // Rute khusus super_admin jika ada
+        // Gunakan match agar bisa menerima request GET maupun POST
+        Route::match(['get', 'post'], '/approval/{id}/approve', [ManPowerController::class, 'approveRequest'])->name('approval.approve');
     });
-
 });

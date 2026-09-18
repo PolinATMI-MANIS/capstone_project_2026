@@ -59,12 +59,12 @@
                             <td class="text-muted">{{ $item->created_at->format('d M Y') }}</td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-1">
-                                    <!-- Tombol Detail & Process (Semua role bisa lihat) -->
+                                    <!-- Tombol Detail & Process (Semua role) -->
                                     <a href="{{ route('rnd.show', $item->id) }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px;">
                                         <i class="fa-solid fa-eye me-1"></i> Detail & Process
                                     </a>
 
-                                    <!-- Form & Tombol Hapus (Hanya Admin / SuperAdmin) -->
+                                    <!-- Tombol Hapus (Khusus Super Admin & Admin) -->
                                     @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin()))
                                         <form id="delete-form-{{ $item->id }}" action="{{ route('rnd.destroy', $item->id) }}" method="POST" class="d-inline">
                                             @csrf

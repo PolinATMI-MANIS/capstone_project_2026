@@ -122,7 +122,7 @@
     </div>
 </div>
 
-<!-- 2. SECTION TABEL (Struktur yang sudah diperbaiki) -->
+<!-- 2. SECTION TABEL -->
 <div class="row mb-4">
     <div class="col-12">
         @php
@@ -350,13 +350,14 @@
             options: chartOptions
         });
 
+        // --- REVISI: Data & Label Chart Resources disesuaikan dengan ManPower ---
         new Chart(document.getElementById('chartResources').getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['Active', 'Idle', 'On Leave'],
+                labels: ['Kerja', 'Idle', 'Cuti'],
                 datasets: [{
-                    data: [{{ $resActive ?? 0 }}, {{ $resIdle ?? 0 }}, {{ $resLeave ?? 0 }}],
-                    backgroundColor: ['#0dcaf0', '#6edff6', '#b6effb'],
+                    data: [{{ $resKerja ?? 0 }}, {{ $resIdle ?? 0 }}, {{ $resCuti ?? 0 }}],
+                    backgroundColor: ['#0dcaf0', '#ffc107', '#dc3545'],
                     borderWidth: 0
                 }]
             },

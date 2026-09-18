@@ -20,7 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // <--- Ditambahkan agar role bisa diisi
+        'role',
     ];
 
     /**
@@ -46,7 +46,8 @@ class User extends Authenticatable
     // --- HELPER METHOD ROLE ---
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'superadmin';
+        // Mendukung penulisan 'super_admin' (standar DB) maupun 'superadmin'
+        return in_array($this->role, ['super_admin', 'superadmin']);
     }
 
     public function isAdmin(): bool
