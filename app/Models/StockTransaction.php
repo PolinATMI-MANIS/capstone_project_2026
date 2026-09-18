@@ -9,16 +9,31 @@ class StockTransaction extends Model
 {
     use HasFactory;
 
-    // Tuliskan nama tabel di database jika tidak menggunakan bentuk plural standar (opsional tapi aman)
     protected $table = 'stock_transactions';
 
-    // Daftarkan semua kolom yang nanti akan di-input dari Controller
+    // $fillable disesuaikan dengan struktur migration stock_transactions
     protected $fillable = [
-        'transaction_code',
+        'transaction_no',
+        'type',
         'item_id',
-        'type', // Masuk/Keluar
+        'supplier_id',
+        'po_no',
         'qty',
-        'user_id',
-        'notes',
+        'price',
+        'destination_purpose',
+        'admin_name',
+        'transaction_date',
     ];
+
+    // Relasi ke Item
+    public function item()
+    {
+        return $this->belongsTo(Item::class, 'item_id');
+    }
+
+    // Relasi ke Production Order via po_no
+    public function productionOrder()
+    {
+        return $this->belongsTo(ProductionOrder::class, 'po_no', 'no_po');
+    }
 }

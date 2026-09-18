@@ -7,7 +7,6 @@
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -22,11 +21,13 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            background-color: #f1f5f9;
             color: #1e293b;
             overflow-x: hidden;
             min-height: 100vh;
         }
 
+        /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
             position: fixed;
             top: 0;
@@ -40,6 +41,7 @@
             pointer-events: none;
         }
 
+        /* Sidebar Kiri Terang */
         .sidebar {
             height: 100vh;
             width: 260px;
@@ -87,12 +89,6 @@
             border: 1px solid transparent;
         }
 
-        .sidebar a i {
-            margin-right: 12px;
-            width: 20px;
-            text-align: center;
-        }
-
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
             background: rgba(255, 255, 255, 0.85);
@@ -100,6 +96,12 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
             transform: translateX(3px);
             font-weight: 600;
+        }
+
+        .sidebar a i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
         }
 
         .sidebar .submenu {
@@ -125,6 +127,7 @@
             transform: rotate(-90deg);
         }
 
+        /* Container Utama */
         .main-content {
             margin-left: 260px;
             padding: 40px;
@@ -142,6 +145,50 @@
             flex-direction: column;
             justify-content: space-between;
         }
+
+        /* Sub-Navbar Atas Terang */
+        .sub-navbar {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 6px;
+            border-radius: 12px;
+            display: inline-flex;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+
+        .sub-nav-btn {
+            color: #64748b;
+            text-decoration: none;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .sub-nav-btn.active, .sub-nav-btn:hover {
+            background-color: #ff6600;
+            color: #ffffff;
+        }
+
+        /* Tombol Aksi */
+        .btn-machine {
+            background-color: #ff6600;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 0.85rem;
+            border: none;
+            transition: 0.3s;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
+        }
+        .btn-machine:hover {
+            background-color: #e55c00;
+            transform: translateY(-2px);
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -154,14 +201,17 @@
         </div>
         <div class="sidebar-category">Modules</div>
 
-        <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
+        <!-- Dashboard -->
+        <a href="{{ Route::has('dashboard') ? route('dashboard') : '/dashboard' }}" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
 
-        <a href="#" class="{{ request()->is('production*') ? 'active' : '' }}">
+        <!-- Production -->
+        <a href="{{ Route::has('produksi.index') ? route('produksi.index') : '#' }}" class="{{ request()->routeIs('produksi.*') ? 'active' : '' }}">
             <i class="fa-solid fa-industry"></i> Production
         </a>
 
+        <!-- Inventory Dropdown -->
         <a href="#inventoryDropdown" data-bs-toggle="collapse" 
            class="d-flex justify-content-between align-items-center {{ request()->is('inventory*') ? 'active' : '' }}" 
            aria-expanded="{{ request()->is('inventory*') ? 'true' : 'false' }}">
@@ -183,21 +233,40 @@
                 </a>
             @endif
             
-            <!-- Purchase Order - AMAN, TIDAK DIHILANGKAN! -->
+            <!-- Purchase Order -->
             <a href="{{ Route::has('inventory.po.index') ? route('inventory.po.index') : '#' }}" class="submenu {{ request()->is('inventory/po*') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-invoice"></i> Purchase Order
             </a>
         </div>
 
-        <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="{{ request()->is('man-power*') ? 'active' : '' }}">
-            <i class="fa-solid fa-users-gear"></i> Resources
-        </a>
+        <!-- Resources (Man Power & Machine Power) -->
+        @php
+            $pendingApprovalCount = 0;
+            try {
+                if (class_exists('\App\Models\ApprovalRequest') && \Illuminate\Support\Facades\Schema::hasTable('approval_requests')) {
+                    $pendingApprovalCount = \App\Models\ApprovalRequest::where('status', 'pending')->count();
+                }
+            } catch (\Exception $e) {
+                $pendingApprovalCount = 0;
+            }
+        @endphp
 
+        <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="{{ request()->routeIs('man-power.*') || request()->is('machine*') ? 'active' : '' }}">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <div><i class="fa-solid fa-users-gear"></i> Resources</div>
+                @if($pendingApprovalCount > 0)
+                    <span class="badge bg-danger rounded-pill" style="font-size: 0.65rem;">{{ $pendingApprovalCount }}</span>
+                @endif
+            </div>
+        </a>
+        
+        <!-- Order Here ! -->
         <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
             <i class="fa-solid fa-cart-shopping"></i> Order Here !
         </a>
-
-        <a href="#" class="{{ request()->is('rnd*') ? 'active' : '' }}">
+        
+        <!-- RnD -->
+        <a href="/rnd" class="{{ Request::is('rnd*') ? 'active' : '' }}">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
@@ -208,6 +277,7 @@
             </a>
         @endif
 
+        <!-- Support Info Footer -->
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
             <div class="p-3 rounded-3" style="background-color: rgba(248, 249, 250, 0.8); border: 1px solid #eaedf1;">
                 <div class="d-flex align-items-center mb-2">
@@ -218,12 +288,13 @@
                     <i class="fa-solid fa-envelope me-1"></i> info@capstone.co.id
                 </p>
                 <p class="text-muted m-0 mt-1" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-phone me-1"></i> +62 12 3456 789
+                    <i class="fa-solid fa-phone me-1"></i> +62 81314350301
                 </p>
             </div>
         </div>
     </div>
 
+    <!-- Main Content Area -->
     <div class="main-content">
         @if(View::exists('components.notification'))
             <x-notification />

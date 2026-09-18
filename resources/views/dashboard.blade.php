@@ -1,14 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
-<!-- Header Dashboard & Profile Dropdown (Kanan Atas) -->
+<!-- Header Dashboard & Profile Dropdown -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="fw-bold m-0 text-dark">Dashboard Overview</h3>
         <p class="text-muted small m-0 mt-1">Rekapan data operasional dari seluruh modul Capstone Industrial System.</p>
     </div>
 
-    <!-- Dropdown Profil Pengguna -->
     <div class="dropdown">
         <button class="btn bg-white px-3 py-2 rounded-3 shadow-sm border d-flex align-items-center dropdown-toggle text-start" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             <div class="text-secondary d-flex align-items-center justify-content-center me-3" style="font-size: 2.2rem;">
@@ -31,15 +30,18 @@
                 </a>
             </li>
             <li>
-                <a class="dropdown-item d-flex align-items-center py-2 rounded-2" href="/logout">
+                <a class="dropdown-item d-flex align-items-center py-2 rounded-2" href="{{ route('login') }}">
                     <i class="fa-solid fa-users-between-lines me-2 text-muted"></i> Login Akun Lain
                 </a>
             </li>
             <li><hr class="dropdown-divider my-1"></li>
             <li>
-                <a class="dropdown-item d-flex align-items-center py-2 rounded-2 text-danger fw-semibold" href="/logout">
-                    <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
-                </a>
+                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="dropdown-item d-flex align-items-center py-2 rounded-2 text-danger fw-semibold w-100 bg-transparent border-0">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
+                    </button>
+                </form>
             </li>
         </ul>
     </div>
@@ -47,7 +49,6 @@
 
 <!-- 1. GRID SUMMARY CARDS -->
 <div class="row g-4 mb-4">
-    <!-- Baris 1: Card 1, 2, 3 Sejajar -->
     <div class="col-md-4">
         <a href="/inventory" class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
@@ -64,7 +65,7 @@
     </div>
 
     <div class="col-md-4">
-        <a href="/production" class="text-decoration-none">
+        <a href="{{ route('produksi.index') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <span class="text-muted small text-uppercase font-monospace fw-bold">Production</span>
@@ -73,13 +74,13 @@
                     </div>
                 </div>
                 <h3 class="fw-bold m-0 text-dark">{{ $totalProduction ?? 0 }}</h3>
-                <p class="text-muted small m-0 mt-1">Batch Produksi Berjalan</p>
+                <p class="text-muted small m-0 mt-1">Total SPK Terbit</p>
             </div>
         </a>
     </div>
 
     <div class="col-md-4">
-        <a href="/resources" class="text-decoration-none">
+        <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <span class="text-muted small text-uppercase font-monospace fw-bold">Resources</span>
@@ -93,7 +94,6 @@
         </a>
     </div>
 
-    <!-- Baris 2: Card 4 & 5 Posisi Tengah -->
     <div class="col-md-4 offset-md-2">
         <a href="/purchase" class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
@@ -137,7 +137,7 @@
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
-                        <i class="fa-solid fa-trash-can text-danger me-2"></i> Permintaan Approval Hapus Data (Dari Admin)
+                        <i class="fa-solid fa-trash-can text-danger me-2"></i> Permintaan Approval Hapus Data
                     </h6>
                     <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2">{{ $pendingCount ?? 0 }} Perlu Tindakan</span>
                 </div>
@@ -156,12 +156,22 @@
                             <tbody>
                                 @forelse($pendingApprovals ?? [] as $item)
                                     <tr>
-                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'user_name', '-') }}</td>
-                                        <td><span class="badge bg-primary">{{ data_get($item, 'module', '-') }}</span></td>
-                                        <td class="small">{{ data_get($item, 'item_name', '-') }}</td>
-                                        <td class="small text-muted">{{ data_get($item, 'reason', '-') }}</td>
+                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'user_name') ?? data_get($item, 'pemohon', '-') }}</td>
+                                        <td><span class="badge bg-primary">{{ data_get($item, 'module') ?? data_get($item, 'modul', '-') }}</span></td>
+                                        <td class="small">{{ data_get($item, 'item_name') ?? data_get($item, 'data', '-') }}</td>
+                                        <td class="small text-muted">{{ data_get($item, 'reason') ?? data_get($item, 'alasan', '-') }}</td>
                                         <td class="text-end pe-3">
-                                            <button class="btn btn-sm btn-success rounded-2 me-1"><i class="fa-solid fa-check me-1"></i> Approve</button>
+                                            @php
+                                                $approveUrl = data_get($item, 'url') ?? data_get($item, 'url_approve', '#');
+                                            @endphp
+                                            @if($approveUrl !== '#')
+                                                <form action="{{ $approveUrl }}" method="POST" class="d-inline m-0 p-0">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success rounded-2 me-1" onclick="return confirm('Setujui penghapusan data secara permanen?')">
+                                                        <i class="fa-solid fa-check me-1"></i> Approve
+                                                    </button>
+                                                </form>
+                                            @endif
                                             <button class="btn btn-sm btn-outline-danger rounded-2"><i class="fa-solid fa-xmark me-1"></i> Tolak</button>
                                         </td>
                                     </tr>
@@ -180,50 +190,61 @@
             </div>
             
         @elseif($role === 'admin')
-            <!-- TABEL ADMIN -->
-            <div class="card border-0 shadow-sm rounded-3 p-4 text-center">
-                <p class="text-muted mb-0"><i class="fa-solid fa-clipboard-list fs-4 d-block mb-2 text-warning"></i> Area monitoring Admin</p>
-            </div>
-            
-        @else
-            <!-- TABEL USER BIASA: Notifikasi Status Pengajuan -->
+            <!-- TABEL ADMIN: Approval SPK dari User -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
-                        <i class="fa-solid fa-bell text-info me-2"></i> Notifikasi Status Pengajuan
+                        <i class="fa-solid fa-clipboard-list text-warning me-2"></i> Permintaan Approval SPK Baru (Dari User)
                     </h6>
-                    <span class="badge bg-light text-muted border px-3 py-2">Pembaruan Terakhir</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2">{{ $pendingCount ?? 0 }} Perlu Tindakan</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table align-middle mb-0">
                             <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
-                                    <th class="ps-3">ID Pengajuan</th>
-                                    <th>Kategori</th>
+                                    <th class="ps-3">Pemohon</th>
+                                    <th>Modul</th>
+                                    <th>Data SPK Baru</th>
                                     <th>Keterangan</th>
-                                    <th>Status</th>
                                     <th class="text-end pe-3">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($pendingApprovals ?? [] as $item)
                                     <tr>
-                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'id', '-') }}</td>
-                                        <td><span class="badge bg-secondary">{{ data_get($item, 'category', '-') }}</span></td>
-                                        <td class="small">{{ data_get($item, 'description', '-') }}</td>
+                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'user_name') ?? data_get($item, 'pemohon', '-') }}</td>
+                                        <td><span class="badge bg-secondary">{{ data_get($item, 'category') ?? data_get($item, 'modul', '-') }}</span></td>
+                                        <td class="small">{{ data_get($item, 'description') ?? data_get($item, 'data', '-') }}</td>
                                         <td>
                                             <span class="badge bg-warning text-dark">{{ data_get($item, 'status', 'Pending') }}</span>
                                         </td>
                                         <td class="text-end pe-3">
-                                            <button class="btn btn-sm btn-light rounded-2 border"><i class="fa-solid fa-eye me-1"></i> Detail</button>
+                                            <div class="d-inline-flex gap-1">
+                                                @if(data_get($item, 'url_approve'))
+                                                    <form action="{{ data_get($item, 'url_approve') }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-2">
+                                                            <i class="fa-solid fa-check me-1"></i> Terima
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                @if(data_get($item, 'url_reject'))
+                                                    <form action="{{ data_get($item, 'url_reject') }}" method="POST" class="m-0 p-0">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-2">
+                                                            <i class="fa-solid fa-xmark me-1"></i> Tolak
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center py-5 text-muted small">
-                                            <i class="fa-solid fa-bell-slash text-muted fs-4 d-block mb-2"></i>
-                                            Belum ada notifikasi atau riwayat pengajuan saat ini.
+                                        <td colspan="5" class="text-center py-4 text-muted small">
+                                            <i class="fa-solid fa-circle-check text-success fs-5 d-block mb-1"></i>
+                                            Tidak ada permintaan approval SPK baru saat ini.
                                         </td>
                                     </tr>
                                 @endforelse
@@ -232,13 +253,18 @@
                     </div>
                 </div>
             </div>
+            
+        @else
+            <!-- TABEL USER BIASA -->
+            <div class="card border-0 shadow-sm rounded-3 p-4 text-center">
+                <p class="text-muted mb-0"><i class="fa-solid fa-bell-slash text-muted fs-4 d-block mb-2"></i> Belum ada notifikasi.</p>
+            </div>
         @endif
     </div>
 </div>
 
 <!-- 3. SECTION CHARTS PER MODUL -->
 <div class="row g-4 mb-4">
-    <!-- Chart Inventory -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
@@ -250,7 +276,6 @@
         </div>
     </div>
     
-    <!-- Chart Production -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
@@ -262,7 +287,6 @@
         </div>
     </div>
 
-    <!-- Chart Resources -->
     <div class="col-md-4">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
@@ -274,7 +298,6 @@
         </div>
     </div>
 
-    <!-- Chart Order -->
     <div class="col-md-6">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
@@ -288,7 +311,6 @@
         </div>
     </div>
 
-    <!-- Chart RnD -->
     <div class="col-md-6">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
@@ -435,16 +457,9 @@
 </div>
 
 <style>
-    .card-hover {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .card-hover:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important;
-    }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
 </style>
-
-@endsection
 
 @push('scripts')
 <script>
@@ -539,3 +554,5 @@
     });
 </script>
 @endpush
+
+@endsection

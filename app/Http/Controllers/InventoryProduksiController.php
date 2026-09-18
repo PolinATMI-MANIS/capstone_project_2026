@@ -7,6 +7,8 @@ use App\Models\Item;
 use App\Models\Supplier;
 use App\Models\ItemRequest;
 use App\Models\User;
+use App\Models\ProductionOrder;
+use App\Models\Resource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -29,7 +31,8 @@ class InventoryProduksiController extends Controller
         $tanggalSelesai = $request->input('tanggal_selesai', date('Y-m-d'));
         $jenis          = $request->input('jenis');
 
-        $query = ItemRequest::whereIn('type', ['in', 'out'])
+        $query = ItemRequest::with(['item', 'user', 'productionOrder', 'resource'])
+            ->whereIn('type', ['in', 'out'])
             ->whereDate('created_at', '>=', $tanggalMulai)
             ->whereDate('created_at', '<=', $tanggalSelesai);
 
@@ -62,8 +65,9 @@ class InventoryProduksiController extends Controller
 
     public function master()
     {
-        $barangs   = Item::all();
-        $suppliers = Supplier::all();
+        $barangs = Item::all();
+        $suppliers = Supplier::where('status', 'Aktif')->get();
+
         return view('inventory.produksi.master', compact('barangs', 'suppliers'));
     }
 
@@ -83,14 +87,18 @@ class InventoryProduksiController extends Controller
 
     public function barangKeluar()
     {
-        $barangs = Item::all();
-        return view('inventory.produksi.barang_keluar', compact('barangs'));
+        $barangs          = Item::all();
+        $productionOrders = ProductionOrder::all();
+        $resources        = Resource::all();
+        return view('inventory.produksi.barang_keluar', compact('barangs', 'productionOrders', 'resources'));
     }
 
     public function createBarangKeluar()
     {
-        $barangs = Item::all();
-        return view('inventory.produksi.create_barang_keluar', compact('barangs'));
+        $barangs          = Item::all();
+        $productionOrders = ProductionOrder::all();
+        $resources        = Resource::all();
+        return view('inventory.produksi.create_barang_keluar', compact('barangs', 'productionOrders', 'resources'));
     }
 
     public function laporan(Request $request)
@@ -103,7 +111,7 @@ class InventoryProduksiController extends Controller
     }
 
     // ==========================================
-    // 2. EXPORT LAPORAN (REAL DOWNLOAD)
+    // 2. EXPORT LAPORAN
     // ==========================================
     public function exportPdf(Request $request)
     {
@@ -128,6 +136,8 @@ class InventoryProduksiController extends Controller
                             <th>No</th>
                             <th>Tanggal</th>
                             <th>Kode Transaksi</th>
+                            <th>SPK Produksi</th>
+                            <th>Resource</th>
                             <th>Nama Barang</th>
                             <th>Qty</th>
                             <th>Satuan</th>
@@ -138,13 +148,17 @@ class InventoryProduksiController extends Controller
                     <tbody>';
         
         foreach ($laporans as $index => $row) {
-            $namaBarang = $row->item ? $row->item->name : ($row->nama_barang ?? '-');
-            $satuan = $row->item ? $row->item->unit : ($row->satuan ?? '-');
+            $namaBarang   = $row->item ? $row->item->name : ($row->nama_barang ?? '-');
+            $satuan       = $row->item ? $row->item->unit : ($row->satuan ?? '-');
+            $spkCode      = $row->productionOrder ? ($row->productionOrder->code ?? $row->productionOrder->request_code ?? '-') : '-';
+            $resourceName = $row->resource ? ($row->resource->name ?? '-') : '-';
 
             $html .= '<tr>
                         <td>' . ($index + 1) . '</td>
                         <td>' . $row->created_at . '</td>
                         <td>' . ($row->request_code ?? '-') . '</td>
+                        <td>' . e($spkCode) . '</td>
+                        <td>' . e($resourceName) . '</td>
                         <td>' . e($namaBarang) . '</td>
                         <td>' . $row->qty . '</td>
                         <td>' . e($satuan) . '</td>
@@ -179,6 +193,8 @@ class InventoryProduksiController extends Controller
                                 <th style="padding: 5px;">No</th>
                                 <th style="padding: 5px;">Tanggal</th>
                                 <th style="padding: 5px;">Kode Transaksi</th>
+                                <th style="padding: 5px;">SPK Produksi</th>
+                                <th style="padding: 5px;">Resource</th>
                                 <th style="padding: 5px;">Nama Barang</th>
                                 <th style="padding: 5px;">Qty</th>
                                 <th style="padding: 5px;">Satuan</th>
@@ -189,13 +205,17 @@ class InventoryProduksiController extends Controller
                         <tbody>';
         
         foreach ($laporans as $index => $row) {
-            $namaBarang = $row->item ? $row->item->name : ($row->nama_barang ?? '-');
-            $satuan = $row->item ? $row->item->unit : ($row->satuan ?? '-');
+            $namaBarang   = $row->item ? $row->item->name : ($row->nama_barang ?? '-');
+            $satuan       = $row->item ? $row->item->unit : ($row->satuan ?? '-');
+            $spkCode      = $row->productionOrder ? ($row->productionOrder->code ?? $row->productionOrder->request_code ?? '-') : '-';
+            $resourceName = $row->resource ? ($row->resource->name ?? '-') : '-';
 
             $html .= '<tr>
                         <td style="padding: 5px; text-align: center;">' . ($index + 1) . '</td>
                         <td style="padding: 5px;">' . $row->created_at . '</td>
                         <td style="padding: 5px;">' . ($row->request_code ?? '-') . '</td>
+                        <td style="padding: 5px;">' . e($spkCode) . '</td>
+                        <td style="padding: 5px;">' . e($resourceName) . '</td>
                         <td style="padding: 5px;">' . e($namaBarang) . '</td>
                         <td style="padding: 5px; text-align: center;">' . $row->qty . '</td>
                         <td style="padding: 5px; text-align: center;">' . e($satuan) . '</td>
@@ -238,7 +258,7 @@ class InventoryProduksiController extends Controller
                 'stok'      => $request->input('current_stock') ?? $request->input('stok') ?? 0,
                 'stok_min'  => $request->input('minimum_stock') ?? $request->input('stok_min') ?? 5,
                 'lokasi'    => $request->input('location') ?? $request->input('lokasi_rak') ?? $request->input('lokasi'),
-                'supplier'  => $request->input('supplier_main') ?? $request->input('supplier_utama') ?? $request->input('supplier'),
+                'supplier'  => $request->input('supplier_id') ?? $request->input('supplier_main') ?? $request->input('supplier_utama') ?? $request->input('supplier'),
                 'harga'     => $request->input('price') ?? $request->input('harga') ?? 0,
                 'status'    => $request->input('status') ?? 'Aktif',
             ]);
@@ -267,16 +287,16 @@ class InventoryProduksiController extends Controller
             $cleanPrice = preg_replace('/[^\d]/', '', $rawPrice);
 
             $item->update([
-                'item_code'     => $request->input('item_code'),
-                'name'          => $request->input('name'),
-                'category'      => $request->input('category'),
-                'unit'          => $request->input('unit'),
-                'stok'          => $request->input('stok'),
-                'stok_min'      => $request->input('minimum_stock', 5),
-                'lokasi'        => $request->input('location'),
-                'supplier'      => $request->input('supplier_main'),
-                'harga'         => $cleanPrice !== '' ? $cleanPrice : 0,
-                'status'        => $request->input('status', 'Aktif'),
+                'item_code' => $request->input('item_code'),
+                'name'      => $request->input('name'),
+                'category'  => $request->input('category'),
+                'unit'      => $request->input('unit'),
+                'stok'      => $request->input('stok'),
+                'stok_min'  => $request->input('minimum_stock', 5),
+                'lokasi'    => $request->input('location'),
+                'supplier'  => $request->input('supplier_id') ?? $request->input('supplier_main'),
+                'harga'     => $cleanPrice !== '' ? $cleanPrice : 0,
+                'status'    => $request->input('status', 'Aktif'),
             ]);
 
             return redirect()->back()->with('success', 'Data barang berhasil diperbarui!');
@@ -285,14 +305,15 @@ class InventoryProduksiController extends Controller
             return redirect()->back()->with('error', 'Gagal memperbarui data barang: ' . $e->getMessage())->withInput();
         }
     }
-    
+
     public function storeBarangMasuk(Request $request)
     {
         DB::beginTransaction();
         try {
-            $supplier = $request->input('supplier');
-            $noSurat  = $request->input('no_surat_jalan');
-            $catatan  = $request->input('keterangan');
+            $supplierId = $request->input('supplier_id');
+            $supplier   = $supplierId ?? $request->input('supplier');
+            $noSurat    = $request->input('no_surat_jalan');
+            $catatan    = $request->input('keterangan');
             
             $items = [];
 
@@ -328,7 +349,7 @@ class InventoryProduksiController extends Controller
             }
 
             if (empty($items)) {
-                return redirect()->back()->with('error', 'Silakan klik dan pilih nama barang terlebih dahulu dari dropdown Master Barang!')->withInput();
+                return redirect()->back()->with('error', 'Silakan pilih nama barang terlebih dahulu!')->withInput();
             }
 
             $user = Auth::user();
@@ -344,14 +365,17 @@ class InventoryProduksiController extends Controller
                 if (!$barang) continue;
 
                 ItemRequest::create([
-                    'request_code' => $mainRequestCode,
-                    'user_id'      => $user ? $user->id : null,
-                    'department'   => 'Gudang / Produksi',
-                    'item_id'      => $barang->id,
-                    'qty'          => $jumlah,
-                    'type'         => 'in',
-                    'status'       => $statusApproval,
-                    'notes'        => (!empty($noSurat) ? "No. Surat Jalan: {$noSurat}. " : "") . ($row['notes'] ?? 'Barang Masuk'),
+                    'request_code'        => $mainRequestCode,
+                    'user_id'             => $user ? $user->id : null,
+                    'supplier_id'         => $supplierId,
+                    'production_order_id' => $request->input('production_order_id'),
+                    'resource_id'         => $request->input('resource_id'),
+                    'department'          => 'Gudang / Produksi',
+                    'item_id'             => $barang->id,
+                    'qty'                 => $jumlah,
+                    'type'                => 'in',
+                    'status'              => $statusApproval,
+                    'notes'               => (!empty($noSurat) ? "No. Surat Jalan: {$noSurat}. " : "") . ($row['notes'] ?? 'Barang Masuk'),
                 ]);
 
                 $barang->stok += $jumlah;
@@ -406,28 +430,34 @@ class InventoryProduksiController extends Controller
     }
 
     // ==========================================
-    // SUPPLIER CRUD
+    // 4. SUPPLIER CRUD
     // ==========================================
     public function storeSupplier(Request $request)
     {
-        $supplierName = $request->input('name') ?? $request->input('nama_supplier');
-        $supplierCode = $request->input('code') ?? $request->input('kode_supplier') ?? $request->input('supplier_code');
-        $supplierPhone = $request->input('phone') ?? $request->input('kontak');
+        $supplierName    = $request->input('name') ?? $request->input('nama_supplier');
+        $supplierCode    = $request->input('code') ?? $request->input('kode_supplier') ?? $request->input('supplier_code');
+        $supplierPhone   = $request->input('phone') ?? $request->input('kontak') ?? $request->input('no_telp');
         $supplierAddress = $request->input('address') ?? $request->input('alamat');
+        $supplierEmail   = $request->input('email');
+        $supplierPic     = $request->input('pic') ?? $request->input('pic_name') ?? $request->input('contact_person');
 
         if (empty($supplierName)) {
             return redirect()->back()->with('error', 'Nama supplier wajib diisi!')->withInput();
         }
 
+        if (empty($supplierCode)) {
+            $nextId = (Supplier::max('id') ?? 0) + 1;
+            $supplierCode = 'SUP-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
+        }
+
         Supplier::create([
+            'supplier_code' => $supplierCode,
             'name'          => $supplierName,
-            'nama_supplier' => $supplierName,
-            'code'          => $supplierCode,
-            'kode_supplier' => $supplierCode,
-            'phone'         => $supplierPhone,
-            'kontak'        => $supplierPhone,
-            'address'       => $supplierAddress,
             'alamat'        => $supplierAddress,
+            'phone'         => $supplierPhone,
+            'email'         => $supplierEmail,
+            'pic'           => $supplierPic,
+            'status'        => $request->input('status', 'Aktif'),
         ]);
 
         return redirect('/inventory/produksi/master')->with('success', 'Supplier baru berhasil ditambahkan.');
@@ -435,27 +465,32 @@ class InventoryProduksiController extends Controller
 
     public function updateSupplier(Request $request, $id)
     {
-        $supplierName = $request->input('name') ?? $request->input('nama_supplier');
-        $supplierCode = $request->input('code') ?? $request->input('kode_supplier') ?? $request->input('supplier_code');
-        $supplierPhone = $request->input('phone') ?? $request->input('kontak');
+        $supplierName    = $request->input('name') ?? $request->input('nama_supplier');
+        $supplierCode    = $request->input('code') ?? $request->input('kode_supplier') ?? $request->input('supplier_code');
+        $supplierPhone   = $request->input('phone') ?? $request->input('kontak') ?? $request->input('no_telp');
         $supplierAddress = $request->input('address') ?? $request->input('alamat');
+        $supplierEmail   = $request->input('email');
+        $supplierPic     = $request->input('pic') ?? $request->input('pic_name') ?? $request->input('contact_person');
 
         if (empty($supplierName)) {
             return redirect()->back()->with('error', 'Nama supplier wajib diisi!')->withInput();
         }
 
         $supplier = Supplier::findOrFail($id);
-        
+
+        if (empty($supplierCode)) {
+            $supplierCode = $supplier->kode_supplier ?? $supplier->code ?? ('SUP-' . str_pad($supplier->id, 3, '0', STR_PAD_LEFT));
+        }
+
         $supplier->update([
-            'name'          => $supplierName,
-            'nama_supplier' => $supplierName,
-            'code'          => $supplierCode,
-            'kode_supplier' => $supplierCode,
-            'phone'         => $supplierPhone,
-            'kontak'        => $supplierPhone,
-            'address'       => $supplierAddress,
-            'alamat'        => $supplierAddress,
-        ]);
+        'supplier_code' => $supplierCode,
+        'name'          => $supplierName,
+        'alamat'        => $supplierAddress,
+        'phone'         => $supplierPhone,
+        'email'         => $supplierEmail,
+        'pic'           => $supplierPic,
+        'status'        => $request->input('status') ?? $supplier->status ?? 'Aktif',
+    ]);
 
         return redirect('/inventory/produksi/master')->with('success', 'Data supplier berhasil diperbarui.');
     }
@@ -464,79 +499,91 @@ class InventoryProduksiController extends Controller
     {
         $supplier = Supplier::findOrFail($id);
         $supplier->delete();
-        return redirect('/inventory/produksi/master')->with('success', 'Supplier berhasil dihapus.');
+
+        return redirect()->route('inventory.produksi.index', ['tab' => 'supplier'])
+            ->with('success', 'Data supplier berhasil dihapus!');
     }
 
-public function storeBarangKeluar(Request $request)
-{
-    $details = $request->input('detail');
+    // ==========================================
+    // BARANG KELUAR (PRODUKSI & RESOURCE LOGIC)
+    // ==========================================
+ public function storeBarangKeluar(Request $request)
+    {
+        $details = $request->input('detail');
 
-    if (empty($details) || !is_array($details)) {
-        return redirect()->back()->with('error', 'Silakan pilih minimal satu nama barang terlebih dahulu!')->withInput();
-    }
-
-    $user = Auth::user();
-    $role = $this->getNormalizedRole($user);
-
-    DB::beginTransaction();
-    try {
-        foreach ($details as $row) {
-            $namaBarang = $row['nama_barang'] ?? null;
-            $qty        = $row['qty'] ?? 1;
-
-            if (empty($namaBarang)) {
-                continue;
-            }
-
-            // Sesuaikan 'name' di bawah ini dengan nama kolom di tabel items Anda (misal: 'name', 'item_name', atau 'nama')
-            $barang = Item::where('name', $namaBarang)
-                        ->orWhere('id', $namaBarang)
-                        ->first();
-
-            if (!$barang) {
-                throw new \Exception("Barang '{$namaBarang}' tidak ditemukan di master database!");
-            }
-
-            if ($barang->stok < $qty) {
-                // Sesuaikan juga pemanggilan nama kolom jika error (misal $barang->name)
-                throw new \Exception("Stok barang tidak mencukupi! Sisa stok: {$barang->stok}");
-            }
-
-            $statusApproval = ($role === 'super_admin') ? 'Approved by Super Admin' : (($role === 'admin') ? 'Approved by Admin' : 'Pending Admin');
-
-            ItemRequest::create([
-                'request_code' => 'REQ-OUT-' . strtoupper(uniqid()),
-                'user_id'      => $user ? $user->id : null,
-                'department'   => $request->input('department') ?? 'Produksi / Gudang',
-                'item_id'      => $barang->id,
-                'qty'          => $qty,
-                'type'         => 'out',
-                'status'       => $statusApproval,
-                'notes'        => $request->input('notes') ?? $request->input('keterangan') ?? 'Transaksi Barang Keluar',
-            ]);
-
-            if ($role !== 'user') {
-                $barang->stok -= $qty;
-                $barang->save();
-            }
+        if (empty($details) || !is_array($details)) {
+            return redirect()->back()->with('error', 'Silakan pilih minimal satu nama barang terlebih dahulu!')->withInput();
         }
 
-        DB::commit();
-        return redirect('/inventory/produksi/laporan')->with('success', 'Transaksi barang keluar berhasil dicatat.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Kesalahan pada storeBarangKeluar: ' . $e->getMessage());
-        return redirect()->back()->with('error', $e->getMessage())->withInput();
+        $user = Auth::user();
+        $role = $this->getNormalizedRole($user);
+
+        DB::beginTransaction();
+        try {
+            foreach ($details as $row) {
+                $idB        = $row['item_id'] ?? $row['barang_id'] ?? null;
+                $namaBarang = $row['nama_barang'] ?? null;
+                $qty        = $row['qty'] ?? 1;
+
+                if (empty($idB) && empty($namaBarang)) {
+                    continue;
+                }
+
+                if ($idB) {
+                    $barang = Item::find($idB);
+                } else {
+                    $barang = Item::where('name', $namaBarang)->orWhere('id', $namaBarang)->first();
+                }
+
+                if (!$barang) {
+                    $searchKey = $idB ?? $namaBarang;
+                    throw new \Exception("Barang '{$searchKey}' tidak ditemukan di master database!");
+                }
+
+                if ($barang->stok < $qty) {
+                    throw new \Exception("Stok barang '{$barang->name}' tidak mencukupi! Sisa stok: {$barang->stok}");
+                }
+
+                $statusApproval = ($role === 'super_admin') ? 'Approved by Super Admin' : (($role === 'admin') ? 'Approved by Admin' : 'Pending Admin');
+
+                ItemRequest::create([
+                    'request_code'        => 'REQ-OUT-' . strtoupper(uniqid()),
+                    'user_id'             => $user ? $user->id : null,
+                    'production_order_id' => $row['production_order_id'] ?? $request->input('production_order_id'),
+                    'resource_id'         => $row['resource_id'] ?? $request->input('resource_id'),
+                    'department'          => $request->input('department') ?? 'Produksi / Gudang',
+                    'item_id'             => $barang->id,
+                    'qty'                 => $qty,
+                    'type'                => 'out',
+                    'status'              => $statusApproval,
+                    'notes'               => $request->input('notes') ?? $request->input('keterangan') ?? 'Transaksi Barang Keluar Produksi',
+                ]);
+
+                // Langsung kurangi stok tanpa batasan role
+                $barang->stok -= $qty;
+                $barang->save();
+            } // <--- KURUNG KURAWAL INI TADI KURANG SEHINGGA FOREACH TIDAK TERTUTUP
+
+            DB::commit();
+            return redirect('/inventory/produksi/laporan')->with('success', 'Transaksi barang keluar berhasil dicatat.');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Kesalahan pada storeBarangKeluar: ' . $e->getMessage());
+            return redirect()->back()->with('error', $e->getMessage())->withInput();
+        }
     }
-}
 
     // ==========================================
     // 5. PERMINTAAN & APPROVAL BARANG
     // ==========================================
     public function indexRequest()
     {
-        $requests = ItemRequest::orderBy('created_at', 'desc')->get();
-        $barangs  = Item::all();
+        $requests = ItemRequest::with(['item', 'user', 'productionOrder', 'resource'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $barangs = Item::all();
         
         return view('inventory.produksi.requests', compact('requests', 'barangs'));
     }
@@ -551,20 +598,20 @@ public function storeBarangKeluar(Request $request)
             'notes'       => 'nullable|string'
         ]);
 
-        $user = Auth::user();
-
-        // Cari item berdasarkan nama jika ada di master barang
+        $user   = Auth::user();
         $barang = Item::whereRaw('LOWER(name) = ?', [strtolower(trim($request->nama_barang))])->first();
 
         ItemRequest::create([
-            'request_code' => 'REQ-GENERAL-' . strtoupper(uniqid()),
-            'user_id'      => $user ? $user->id : null,
-            'department'   => $request->department,
-            'item_id'      => $barang ? $barang->id : null,
-            'qty'          => $request->qty,
-            'type'         => 'general_request',
-            'status'       => 'Pending Admin',
-            'notes'        => "Permintaan barang: {$request->nama_barang} ({$request->qty} {$request->satuan}). " . ($request->notes ?? '')
+            'request_code'        => 'REQ-GENERAL-' . strtoupper(uniqid()),
+            'user_id'             => $user ? $user->id : null,
+            'production_order_id' => $request->input('production_order_id'),
+            'resource_id'         => $request->input('resource_id'),
+            'department'          => $request->department,
+            'item_id'             => $barang ? $barang->id : null,
+            'qty'                 => $request->qty,
+            'type'                => 'general_request',
+            'status'              => 'Pending Admin',
+            'notes'               => "Permintaan barang: {$request->nama_barang} ({$request->qty} {$request->satuan}). " . ($request->notes ?? '')
         ]);
 
         return redirect('/inventory/produksi/requests')->with('success', 'Permintaan berhasil dikirim ke Admin untuk disetujui.');
@@ -601,10 +648,7 @@ public function storeBarangKeluar(Request $request)
             }
 
             if (in_array($itemRequest->type, ['in', 'create_barang', 'general_request'])) {
-                $barang = null;
-                if ($itemRequest->item_id) {
-                    $barang = Item::find($itemRequest->item_id);
-                }
+                $barang = $itemRequest->item_id ? Item::find($itemRequest->item_id) : null;
                 
                 if ($barang) {
                     $barang->stok += $itemRequest->qty;
@@ -680,62 +724,9 @@ public function storeBarangKeluar(Request $request)
 
         if ($ids && is_array($ids)) {
             ItemRequest::whereIn('id', $ids)->delete();
-            return response()->json(['message' => 'Data riwayat yang dipilih berhasil dihapus.']);
+            return response()->json(['message' => 'Data permintaan berhasil dihapus.']);
         }
 
         return response()->json(['message' => 'Tidak ada data yang dipilih.'], 400);
-    }
-
-    public function storeAjax(Request $request)
-    {
-        $validated = $request->validate([
-            'code'       => 'required|unique:items,item_code',
-            'name'       => 'required|string|max:255',
-            'category'   => 'nullable|string',
-            'unit'       => 'required|string',
-            'price'      => 'nullable|numeric',
-            'lokasi_rak' => 'nullable|string',
-        ]);
-
-        $barang = Item::create([
-            'item_code' => $validated['code'],
-            'name'      => $validated['name'],
-            'category'  => $validated['category'] ?? 'Umum',
-            'unit'      => $validated['unit'],
-            'harga'     => $validated['price'] ?? 0,
-            'lokasi'    => $validated['lokasi_rak'] ?? null,
-            'stok'      => 0,
-            'stok_min'  => 0,
-            'supplier'  => '-',
-            'status'    => 'Aktif',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Master barang baru berhasil ditambahkan!',
-            'data'    => [
-                'id'         => $barang->id,
-                'code'       => $barang->item_code,
-                'name'       => $barang->name,
-                'category'   => $barang->category,
-                'unit'       => $barang->unit,
-                'price'      => $barang->harga,
-                'lokasi_rak' => $barang->lokasi,
-            ]
-        ]);
-    }
-    
-    public function simulasiLogin($role)
-    {
-        $user = User::where('role', 'like', "%{$role}%")->first();
-        if (!$user) {
-            $user = User::first(); 
-        }
-        if ($user) {
-            Auth::login($user);
-            return redirect()->route('inventory.produksi.index')->with('success', 'Berhasil simulasi login sebagai: ' . $user->name . ' (' . $user->role . ')');
-        }
-
-        return redirect()->back()->with('error', 'Pengguna tidak ditemukan untuk simulasi login.');
     }
 }

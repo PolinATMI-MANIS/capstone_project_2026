@@ -23,6 +23,21 @@
         </div>
     </div>
 
+    <!-- Alert Messages -->
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm rounded-3 mb-4" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Form Utama -->
     <form action="{{ route('inventory.produksi.barang_keluar.store') }}" method="POST" id="transactionForm">
         @csrf
@@ -35,7 +50,7 @@
                 </div>
                 <div>
                     <h5 class="fw-bold text-dark mb-0">Informasi Header Transaksi</h5>
-                    <p class="text-muted small mb-0">Data umum, tujuan pengeluaran, dan nomor referensi.</p>
+                    <p class="text-muted small mb-0">Data umum, tujuan pengeluaran, SPK, dan nomor referensi.</p>
                 </div>
             </div>
             <div class="card-body p-4 bg-light bg-opacity-25">
@@ -44,7 +59,7 @@
                         <label class="form-label fw-semibold text-secondary small text-uppercase">No. Transaksi</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-hashtag"></i></span>
-                            <input type="text" name="no_transaksi" class="form-control bg-white border-start-0 ps-0 fw-bold text-dark" value="TRX-OUT-{{ date('Ymd') }}-001" readonly>
+                            <input type="text" name="no_transaksi" class="form-control bg-white border-start-0 ps-0 fw-bold text-dark" value="TRX-OUT-{{ date('Ymd') }}-{{ strtoupper(substr(uniqid(), -4)) }}" readonly>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -55,12 +70,43 @@
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold text-secondary small text-uppercase">Tujuan / Divisi <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold text-secondary small text-uppercase">Tujuan / Divisi / Dept <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-building-user"></i></span>
-                            <input type="text" name="tujuan" class="form-control bg-white border-start-0 ps-0" placeholder="Contoh: Divisi Produksi / Cabang A" required>
+                            <input type="text" name="department" class="form-control bg-white border-start-0 ps-0" placeholder="Contoh: Divisi Produksi / Dept Assembly" required>
                         </div>
                     </div>
+                    
+                    <!-- DUA FIELD RELASI BARU: PRODUCTION ORDER & RESOURCE -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-secondary small text-uppercase">SPK / Order Produksi</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-industry"></i></span>
+                            <select name="production_order_id" class="form-select bg-white border-start-0 ps-0">
+                                <option value="">-- Tanpa SPK / Opsional --</option>
+                                @if(isset($productionOrders))
+                                    @foreach($productionOrders as $po)
+                                        <option value="{{ $po->id }}">{{ $po->code ?? $po->request_code ?? ('SPK #'.$po->id) }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-secondary small text-uppercase">Resource / Mesin / Line</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-gears"></i></span>
+                            <select name="resource_id" class="form-select bg-white border-start-0 ps-0">
+                                <option value="">-- Tanpa Resource / Opsional --</option>
+                                @if(isset($resources))
+                                    @foreach($resources as $res)
+                                        <option value="{{ $res->id }}">{{ $res->name ?? $res->nama_resource ?? ('Resource #'.$res->id) }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="col-md-4">
                         <label class="form-label fw-semibold text-secondary small text-uppercase">No. Referensi / Surat <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -68,18 +114,18 @@
                             <input type="text" name="no_referensi" class="form-control bg-white border-start-0 ps-0" placeholder="Contoh: REF/OUT/2026/001" required>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold text-secondary small text-uppercase">Admin / Petugas</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-user-shield"></i></span>
                             <input type="text" name="admin" class="form-control bg-white border-start-0 ps-0 text-muted" value="{{ auth()->user()->name ?? 'Admin Gudang' }}" readonly>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold text-secondary small text-uppercase">Keterangan Catatan</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white text-muted border-end-0"><i class="fa-solid fa-comment-dots"></i></span>
-                            <input type="text" name="keterangan" class="form-control bg-white border-start-0 ps-0" placeholder="Catatan tambahan (opsional)...">
+                            <input type="text" name="notes" class="form-control bg-white border-start-0 ps-0" placeholder="Catatan tambahan (opsional)...">
                         </div>
                     </div>
                 </div>
@@ -110,20 +156,25 @@
                             <tr>
                                 <th class="py-3 px-4" style="width: 40%;">Nama Barang <span class="text-danger">*</span></th>
                                 <th class="py-3 px-3" style="width: 15%;">Qty <span class="text-danger">*</span></th>
-                                <th class="py-3 px-3" style="width: 25%;">Satuan</th>
+                                <th class="py-3 px-3" style="width: 20%;">Satuan</th>
+                                <th class="py-3 px-3" style="width: 15%;">Sisa Stok</th>
                                 <th class="py-3 px-3 text-center" style="width: 10%;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td class="py-3 px-4">
+                                    <input type="hidden" name="detail[0][item_id]" class="item-id-input">
                                     <input type="text" name="detail[0][nama_barang]" class="form-control barang-input shadow-none" list="listMasterBarang" placeholder="Ketik atau pilih nama barang..." required>
                                 </td>
                                 <td class="py-3 px-3">
                                     <input type="number" name="detail[0][qty]" class="form-control qty-input shadow-none" min="1" value="1" required>
                                 </td>
                                 <td class="py-3 px-3">
-                                    <input type="text" name="detail[0][satuan]" class="form-control satuan-input bg-light shadow-none" placeholder="Satuan" required>
+                                    <input type="text" name="detail[0][satuan]" class="form-control satuan-input bg-light shadow-none" placeholder="Satuan">
+                                </td>
+                                <td class="py-3 px-3">
+                                    <span class="badge bg-secondary stok-badge">-</span>
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-row rounded-3" disabled>
@@ -137,7 +188,7 @@
             </div>
             
             <div class="card-footer bg-white py-3 px-4 text-muted small border-top">
-                <i class="fa-solid fa-circle-info text-primary me-1"></i> Pastikan jumlah kuantitas barang keluar sudah sesuai untuk mengurangi stok otomatis.
+                <i class="fa-solid fa-circle-info text-primary me-1"></i> Pastikan kuantitas barang keluar tidak melebihi stok yang tersedia.
             </div>
         </div>
 
@@ -153,12 +204,15 @@
     </form>
 </div>
 
-<!-- Datalist untuk opsi saran Master Barang secara opsional -->
+<!-- Datalist Opsi Master Barang -->
 <datalist id="listMasterBarang">
     @if(isset($barangs))
         @foreach($barangs as $barang)
             <option value="{{ $barang->name ?? $barang->nama_barang ?? $barang->nama }}" 
-                    data-satuan="{{ $barang->unit ?? $barang->satuan ?? 'Pcs' }}">
+                    data-id="{{ $barang->id }}"
+                    data-satuan="{{ $barang->unit ?? $barang->satuan ?? 'Pcs' }}"
+                    data-stok="{{ $barang->stok ?? $barang->stock ?? 0 }}">
+            </option>
         @endforeach
     @endif
 </datalist>
@@ -176,13 +230,17 @@
             
             newRow.innerHTML = `
                 <td class="py-3 px-4">
+                    <input type="hidden" name="detail[${rowIndex}][item_id]" class="item-id-input">
                     <input type="text" name="detail[${rowIndex}][nama_barang]" class="form-control barang-input shadow-none" list="listMasterBarang" placeholder="Ketik atau pilih nama barang..." required>
                 </td>
                 <td class="py-3 px-3">
                     <input type="number" name="detail[${rowIndex}][qty]" class="form-control qty-input shadow-none" min="1" value="1" required>
                 </td>
                 <td class="py-3 px-3">
-                    <input type="text" name="detail[${rowIndex}][satuan]" class="form-control satuan-input bg-light shadow-none" placeholder="Satuan" required>
+                    <input type="text" name="detail[${rowIndex}][satuan]" class="form-control satuan-input bg-light shadow-none" placeholder="Satuan">
+                </td>
+                <td class="py-3 px-3">
+                    <span class="badge bg-secondary stok-badge">-</span>
                 </td>
                 <td class="py-3 px-3 text-center">
                     <button type="button" class="btn btn-outline-danger btn-sm remove-row rounded-3">
@@ -198,20 +256,36 @@
 
         function initRowEvents(row) {
             let barangInput = row.querySelector('.barang-input');
+            let itemIdInput = row.querySelector('.item-id-input');
             let satuanInput = row.querySelector('.satuan-input');
-            let removeBtn = row.querySelector('.remove-row');
+            let stokBadge   = row.querySelector('.stok-badge');
+            let removeBtn   = row.querySelector('.remove-row');
 
-            // Deteksi jika user memilih opsi dari datalist master barang
             barangInput.addEventListener('input', function () {
                 let val = this.value;
                 let options = document.getElementById('listMasterBarang').options;
-                
+                let found = false;
+
                 for (let i = 0; i < options.length; i++) {
                     if (options[i].value === val) {
+                        let itemId = options[i].getAttribute('data-id');
                         let satuan = options[i].getAttribute('data-satuan');
+                        let stok   = options[i].getAttribute('data-stok');
+
+                        itemIdInput.value = itemId || '';
                         satuanInput.value = satuan || '';
-                        return;
+                        
+                        stokBadge.textContent = stok + ' ' + (satuan || '');
+                        stokBadge.className = parseInt(stok) > 0 ? 'badge bg-info text-dark' : 'badge bg-danger';
+                        found = true;
+                        break;
                     }
+                }
+
+                if (!found) {
+                    itemIdInput.value = '';
+                    stokBadge.textContent = '-';
+                    stokBadge.className = 'badge bg-secondary';
                 }
             });
 
@@ -227,7 +301,9 @@
             let rows = table.querySelectorAll('tr');
             rows.forEach((row) => {
                 let removeBtn = row.querySelector('.remove-row');
-                removeBtn.disabled = rows.length === 1;
+                if (removeBtn) {
+                    removeBtn.disabled = rows.length === 1;
+                }
             });
         }
 

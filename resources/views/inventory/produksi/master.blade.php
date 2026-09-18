@@ -54,171 +54,173 @@
         </li>
     </ul>
 
-<!-- Main Content Card Container -->
-<div class="card border-0 shadow-sm rounded-4 glass-card p-4">
-    <div class="tab-content" id="masterTabContent">
-        
-       <!-- Pane 1: Kelola Barang -->
-        <div class="tab-pane fade show active" id="pane-barang" role="tabpanel" aria-labelledby="tab-barang">
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
-                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-boxes-packing me-2" style="color: #ff6600;"></i>Daftar Master Barang</h5>
-                
-                @if($isAdmin)
-                    <!-- Tombol Trigger Modal Tambah Barang Baru -->
-                    <button type="button" class="btn btn-primary px-3 py-2 fw-semibold shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
-                        <i class="fa-solid fa-box-open me-2"></i>+ Tambah Master Barang Baru
-                    </button>
-                @endif
-            </div>
+    <!-- Main Content Card Container -->
+    <div class="card border-0 shadow-sm rounded-4 glass-card p-4">
+        <div class="tab-content" id="masterTabContent">
             
-            <div class="table-responsive rounded-3 border border-light overflow-hidden bg-white bg-opacity-60">
-                <table class="table table-hover align-middle mb-0 text-nowrap">
-                    <thead class="table-light text-uppercase fs-7 text-secondary">
-                        <tr>
-                            <th class="py-3 px-3">Kode Barang/ID</th>
-                            <th class="py-3">Nama Barang</th>
-                            <th class="py-3">Kategori</th>
-                            <th class="py-3">Satuan</th>
-                            <th class="py-3">Stok Saat Ini</th>
-                            <th class="py-3">Stok Min</th>
-                            <th class="py-3">Lokasi / Rak</th>
-                            <th class="py-3">Harga Satuan</th>
-                            <th class="py-3">Supplier Utama</th>
-                            <th class="py-3">Status</th>
-                            @if($isAdmin)
-                                <th class="py-3 text-center">Aksi</th>
-                            @endif
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($barangs ?? [] as $b)
-                        @php 
-                            $bKey = data_get($b, 'id') ?? data_get($b, 'kode_barang') ?? data_get($b, 'item_code') ?? $loop->index; 
-                        @endphp
-                        <tr>
-                            <td class="px-3 fw-semibold" style="color: #ff6600;">{{ data_get($b, 'item_code') ?? data_get($b, 'kode_barang') ?? data_get($b, 'code') ?? '-' }}</td>
-                            <td class="fw-semibold">{{ data_get($b, 'name') ?? data_get($b, 'nama_barang') ?? data_get($b, 'nama') ?? '-' }}</td>
-                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ data_get($b, 'category') ?? data_get($b, 'kategori') ?? '-' }}</span></td>
-                            <td>{{ data_get($b, 'unit') ?? data_get($b, 'satuan') ?? 'Pcs' }}</td>
-                            <td class="fw-bold text-dark">{{ data_get($b, 'current_stock') ?? data_get($b, 'stok') ?? 0 }}</td>
-                            <td class="text-danger fw-semibold">{{ data_get($b, 'minimum_stock') ?? data_get($b, 'stok_min') ?? 0 }}</td>
-                            <td><span class="badge bg-info bg-opacity-10 text-info px-2 py-1">{{ data_get($b, 'location') ?? data_get($b, 'lokasi') ?? data_get($b, 'rak') ?? '-' }}</span></td>
-                            <td>Rp {{ number_format(data_get($b, 'price') ?? data_get($b, 'harga') ?? data_get($b, 'harga_satuan') ?? 0, 0, ',', '.') }}</td>
-                            <td>{{ data_get($b, 'supplier_main') ?? data_get($b, 'supplier') ?? data_get($b, 'supplier_utama') ?? '-' }}</td>
-                            <td>
-                                @if((data_get($b, 'status') ?? 'Aktif') == 'Aktif')
-                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Aktif</span>
-                                @else
-                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Non-Aktif</span>
+            <!-- Pane 1: Kelola Barang -->
+            <div class="tab-pane fade show active" id="pane-barang" role="tabpanel" aria-labelledby="tab-barang">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-boxes-packing me-2" style="color: #ff6600;"></i>Daftar Master Barang</h5>
+                    
+                    @if($isAdmin)
+                        <!-- Tombol Trigger Modal Tambah Barang Baru -->
+                        <button type="button" class="btn btn-primary px-3 py-2 fw-semibold shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+                            <i class="fa-solid fa-box-open me-2"></i>+ Tambah Master Barang Baru
+                        </button>
+                    @endif
+                </div>
+                
+                <div class="table-responsive rounded-3 border border-light overflow-hidden bg-white bg-opacity-60">
+                    <table class="table table-hover align-middle mb-0 text-nowrap">
+                        <thead class="table-light text-uppercase fs-7 text-secondary">
+                            <tr>
+                                <th class="py-3 px-3">Kode Barang/ID</th>
+                                <th class="py-3">Nama Barang</th>
+                                <th class="py-3">Kategori</th>
+                                <th class="py-3">Satuan</th>
+                                <th class="py-3">Stok Saat Ini</th>
+                                <th class="py-3">Stok Min</th>
+                                <th class="py-3">Lokasi / Rak</th>
+                                <th class="py-3">Harga Satuan</th>
+                                <th class="py-3">Supplier Utama</th>
+                                <th class="py-3">Status</th>
+                                @if($isAdmin)
+                                    <th class="py-3 text-center">Aksi</th>
                                 @endif
-                            </td>
-                            @if($isAdmin)
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-warning text-dark px-2 py-1" data-bs-toggle="modal" data-bs-target="#modalEditBarang{{ $bKey }}" title="Edit">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </button>
-                                        <form action="{{ route('inventory.produksi.barang.destroy', $bKey) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus barang ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
-                                        </form>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($barangs ?? [] as $b)
+                            @php 
+                                $bKey = data_get($b, 'id') ?? data_get($b, 'kode_barang') ?? data_get($b, 'item_code') ?? $loop->index; 
+                            @endphp
+                            <tr>
+                                <td class="px-3 fw-semibold" style="color: #ff6600;">{{ data_get($b, 'item_code') ?? data_get($b, 'kode_barang') ?? data_get($b, 'code') ?? '-' }}</td>
+                                <td class="fw-semibold">{{ data_get($b, 'name') ?? data_get($b, 'nama_barang') ?? data_get($b, 'nama') ?? '-' }}</td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ data_get($b, 'category') ?? data_get($b, 'kategori') ?? '-' }}</span></td>
+                                <td>{{ data_get($b, 'unit') ?? data_get($b, 'satuan') ?? 'Pcs' }}</td>
+                                <td class="fw-bold text-dark">{{ data_get($b, 'current_stock') ?? data_get($b, 'stok') ?? 0 }}</td>
+                                <td class="text-danger fw-semibold">{{ data_get($b, 'minimum_stock') ?? data_get($b, 'stok_min') ?? 0 }}</td>
+                                <td><span class="badge bg-info bg-opacity-10 text-info px-2 py-1">{{ data_get($b, 'location') ?? data_get($b, 'lokasi') ?? data_get($b, 'rak') ?? '-' }}</span></td>
+                                <td>Rp {{ number_format(data_get($b, 'price') ?? data_get($b, 'harga') ?? data_get($b, 'harga_satuan') ?? 0, 0, ',', '.') }}</td>
+                                <td>{{ data_get($b, 'supplier_main') ?? data_get($b, 'supplier') ?? data_get($b, 'supplier_utama') ?? '-' }}</td>
+                                <td>
+                                    @if((data_get($b, 'status') ?? 'Aktif') == 'Aktif')
+                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Aktif</span>
+                                    @else
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Non-Aktif</span>
+                                    @endif
+                                </td>
+                                @if($isAdmin)
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark px-2 py-1" data-bs-toggle="modal" data-bs-target="#modalEditBarang{{ $bKey }}" title="Edit">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <form action="{{ route('inventory.produksi.barang.destroy', $bKey) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus barang ini?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="{{ $isAdmin ? '11' : '10' }}" class="text-center py-5 text-muted">
+                                    <div class="py-3">
+                                        <i class="fa-solid fa-box-open fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0 small">Belum ada data barang tersedia.</p>
                                     </div>
                                 </td>
-                            @endif
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="{{ $isAdmin ? '11' : '10' }}" class="text-center py-5 text-muted">
-                                <div class="py-3">
-                                    <i class="fa-solid fa-box-open fa-2x mb-2 opacity-50"></i>
-                                    <p class="mb-0 small">Belum ada data barang tersedia.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <!-- Pane 2: Kelola Supplier -->
-        <div class="tab-pane fade {{ request('tab') == 'supplier' ? 'show active' : '' }}" id="pane-supplier" role="tabpanel" aria-labelledby="tab-supplier">
-            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
-                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-truck-field me-2" style="color: #ff6600;"></i>Daftar Supplier Rekanan</h5>
+            <!-- Pane 2: Kelola Supplier -->
+            <div class="tab-pane fade {{ request('tab') == 'supplier' ? 'show active' : '' }}" id="pane-supplier" role="tabpanel" aria-labelledby="tab-supplier">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
+                    <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-truck-field me-2" style="color: #ff6600;"></i>Daftar Supplier Rekanan</h5>
+                    
+                    @if($isAdmin)
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSupplier">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Supplier Baru
+                        </button>
+                    @endif
+                </div>
                 
-                @if($isAdmin)
-                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSupplier">
-                        <i class="fa-solid fa-plus me-1"></i> Tambah Supplier Baru
-                    </button>
-                @endif
-            </div>
-            
-            <div class="table-responsive rounded-3 border border-light overflow-hidden bg-white bg-opacity-60">
-                <table class="table table-hover align-middle mb-0 text-nowrap">
-                    <thead class="table-light text-uppercase fs-7 text-secondary">
-                        <tr>
-                            <th class="py-3 px-3">Kode Supplier</th>
-                            <th class="py-3">Nama Supplier</th>
-                            <th class="py-3">Alamat</th>
-                            <th class="py-3">No. Telp</th>
-                            <th class="py-3">Email</th>
-                            <th class="py-3">PIC</th>
-                            <th class="py-3">Status</th>
-                            @if($isAdmin)
-                                <th class="py-3 text-center">Aksi</th>
-                            @endif
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($suppliers ?? [] as $s)
-                        @php 
-                            $sKey = data_get($s, 'id') ?? data_get($s, 'kode_supplier') ?? data_get($s, 'supplier_code') ?? $loop->index; 
-                        @endphp
-                        <tr>
-                            <td class="px-3 fw-semibold" style="color: #ff6600;">{{ data_get($s, 'supplier_code') ?? data_get($s, 'kode_supplier') ?? '-' }}</td>
-                            <td class="fw-semibold">{{ data_get($s, 'name') ?? data_get($s, 'nama') ?? '-' }}</td>
-                            <td class="text-truncate" style="max-width: 180px;">{{ data_get($s, 'alamat') ?? data_get($s, 'address') ?? '-' }}</td>
-                            <td>{{ data_get($s, 'phone') ?? data_get($s, 'no_telp') ?? '-' }}</td>
-                            <td>{{ data_get($s, 'email') ?? '-' }}</td>
-                            <td>{{ data_get($s, 'pic') ?? '-' }}</td>
-                            <td>
-                                @if((data_get($s, 'status') ?? 'Aktif') == 'Aktif')
-                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Aktif</span>
-                                @else
-                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Non-Aktif</span>
+                <div class="table-responsive rounded-3 border border-light overflow-hidden bg-white bg-opacity-60">
+                    <table class="table table-hover align-middle mb-0 text-nowrap">
+                        <thead class="table-light text-uppercase fs-7 text-secondary">
+                            <tr>
+                                <th class="py-3 px-3">Kode Supplier</th>
+                                <th class="py-3">Nama Supplier</th>
+                                <th class="py-3">Alamat</th>
+                                <th class="py-3">No. Telp</th>
+                                <th class="py-3">Email</th>
+                                <th class="py-3">PIC</th>
+                                <th class="py-3">Status</th>
+                                @if($isAdmin)
+                                    <th class="py-3 text-center">Aksi</th>
                                 @endif
-                            </td>
-                            @if($isAdmin)
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-warning text-dark px-2 py-1" data-bs-toggle="modal" data-bs-target="#modalEditSupplier{{ $sKey }}" title="Edit">
-                                            <i class="fa-solid fa-pen-to-square"></i>
-                                        </button>
-                                        <form action="{{ route('inventory.produksi.supplier.destroy', $sKey) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus supplier ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
-                                        </form>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($suppliers ?? [] as $s)
+                            @php 
+                                $sKey = data_get($s, 'id') ?? data_get($s, 'supplier_code') ?? data_get($s, 'kode_supplier') ?? $loop->index; 
+                                $sCode = data_get($s, 'supplier_code') ?? data_get($s, 'kode_supplier') ?? data_get($s, 'code') ?? data_get($s, 'kode') ?? data_get($s, 'id') ?? '-';
+                            @endphp
+                            <tr>
+                                <td class="px-3 fw-semibold" style="color: #ff6600;">{{ $sCode }}</td>
+                                <td class="fw-semibold">{{ data_get($s, 'name') ?? data_get($s, 'nama') ?? data_get($s, 'nama_supplier') ?? '-' }}</td>
+                                <td class="text-truncate" style="max-width: 180px;">{{ data_get($s, 'alamat') ?? data_get($s, 'address') ?? '-' }}</td>
+                                <td>{{ data_get($s, 'phone') ?? data_get($s, 'no_telp') ?? data_get($s, 'telp') ?? '-' }}</td>
+                                <td>{{ data_get($s, 'email') ?? '-' }}</td>
+                                <td>{{ data_get($s, 'pic') ?? '-' }}</td>
+                                <td>
+                                    @if((data_get($s, 'status') ?? 'Aktif') == 'Aktif')
+                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Aktif</span>
+                                    @else
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Non-Aktif</span>
+                                    @endif
+                                </td>
+                                @if($isAdmin)
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark px-2 py-1" data-bs-toggle="modal" data-bs-target="#modalEditSupplier{{ $sKey }}" title="Edit">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                            <form action="{{ route('inventory.produksi.supplier.destroy', $sKey) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus supplier ini?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                @endif
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="{{ $isAdmin ? '8' : '7' }}" class="text-center py-5 text-muted">
+                                    <div class="py-3">
+                                        <i class="fa-solid fa-truck-ramp-box fa-2x mb-2 opacity-50"></i>
+                                        <p class="mb-0 small">Belum ada data supplier tersedia.</p>
                                     </div>
                                 </td>
-                            @endif
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="{{ $isAdmin ? '8' : '7' }}" class="text-center py-5 text-muted">
-                                <div class="py-3">
-                                    <i class="fa-solid fa-truck-ramp-box fa-2x mb-2 opacity-50"></i>
-                                    <p class="mb-0 small">Belum ada data supplier tersedia.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
+        </div>
     </div>
 </div>
 
@@ -283,7 +285,17 @@
 
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Supplier Utama</label>
-                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="supplier_main" value="{{ old('supplier_main', old('supplier')) }}" placeholder="Nama supplier utama">
+                            <select class="form-select form-select-sm bg-white border shadow-none" name="supplier_main">
+                                <option value="">-- Pilih Supplier --</option>
+                                @foreach($suppliers ?? [] as $s)
+                                    @php 
+                                        $sName = data_get($s, 'name') ?? data_get($s, 'nama_supplier') ?? data_get($s, 'nama');
+                                    @endphp
+                                    <option value="{{ $sName }}" {{ old('supplier_main', old('supplier')) == $sName ? 'selected' : '' }}>
+                                        {{ $sName }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Status Aktif</label>
@@ -371,7 +383,18 @@
 
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Supplier Utama</label>
-                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="supplier_main" value="{{ data_get($b, 'supplier_main') ?? data_get($b, 'supplier') ?? data_get($b, 'supplier_utama') ?? '' }}">
+                            <select class="form-select form-select-sm bg-white border shadow-none" name="supplier_main">
+                                <option value="">-- Pilih Supplier --</option>
+                                @foreach($suppliers ?? [] as $s)
+                                    @php 
+                                        $sName = data_get($s, 'name') ?? data_get($s, 'nama_supplier') ?? data_get($s, 'nama');
+                                        $currentSupplier = data_get($b, 'supplier_main') ?? data_get($b, 'supplier') ?? data_get($b, 'supplier_utama');
+                                    @endphp
+                                    <option value="{{ $sName }}" {{ $currentSupplier == $sName ? 'selected' : '' }}>
+                                        {{ $sName }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Status Aktif</label>
@@ -406,11 +429,11 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Kode Supplier (Unik)</label>
-                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="supplier_code" value="{{ old('supplier_code', old('kode_supplier')) }}" required placeholder="Contoh: SUP-001">
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="supplier_code" value="{{ old('supplier_code') }}" required placeholder="Contoh: SUP-001">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Nama Supplier (Wajib)</label>
-                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="name" value="{{ old('name', old('nama')) }}" required placeholder="Nama perusahaan/supplier">
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="name" value="{{ old('name') }}" required placeholder="Nama perusahaan/supplier">
                         </div>
                         <div class="col-md-12">
                             <label class="form-label small fw-bold text-secondary">Alamat</label>
@@ -418,7 +441,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">No. Telepon</label>
-                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="phone" value="{{ old('phone', old('no_telp')) }}" placeholder="Contoh: 08123456789">
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 08123456789">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-secondary">Email</label>
@@ -449,61 +472,115 @@
 <!-- ================= MODAL EDIT SUPPLIER ================= -->
 @foreach($suppliers ?? [] as $s)
 @php 
-    $sKey = data_get($s, 'id') ?? data_get($s, 'kode_supplier') ?? data_get($s, 'supplier_code') ?? $loop->index; 
+    $sId      = data_get($s, 'id');
+    $sCode    = data_get($s, 'supplier_code') ?? data_get($s, 'kode_supplier') ?? data_get($s, 'code') ?? '';
+    $sName    = data_get($s, 'name') ?? data_get($s, 'nama_supplier') ?? '';
+    $sAddress = data_get($s, 'alamat') ?? data_get($s, 'address') ?? '';
+    $sPhone   = data_get($s, 'phone') ?? data_get($s, 'kontak') ?? '';
+    $sEmail   = data_get($s, 'email') ?? '';
+    $sPic     = data_get($s, 'pic') ?? '';
+    $sStatus  = data_get($s, 'status') ?? 'Aktif';
 @endphp
-<div class="modal fade" id="modalEditSupplier{{ $sKey }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalEditSupplier{{ $sId }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4 bg-white">
-            <form action="{{ route('inventory.produksi.supplier.destroy', $sKey) }}" method="POST">
+            <form action="{{ route('inventory.produksi.supplier.update', $sId) }}" method="POST">
                 @csrf
                 @method('PUT')
-                <!-- Tambahkan form edit supplier sesuai kebutuhan di sini -->
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="fw-bold text-dark"><i class="fa-solid fa-pen-to-square text-warning me-2"></i>Edit Data Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Kode Supplier (Unik)</label>
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="supplier_code" value="{{ $sCode }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Nama Supplier</label>
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="name" value="{{ $sName }}" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-secondary">Alamat</label>
+                            <textarea class="form-control form-control-sm bg-white border shadow-none" name="alamat" rows="2">{{ $sAddress }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">No. Telepon</label>
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="phone" value="{{ $sPhone }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Email</label>
+                            <input type="email" class="form-control form-control-sm bg-white border shadow-none" name="email" value="{{ $sEmail }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">PIC (Contact Person)</label>
+                            <input type="text" class="form-control form-control-sm bg-white border shadow-none" name="pic" value="{{ $sPic }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Status Aktif</label>
+                            <select class="form-select form-select-sm bg-white border shadow-none" name="status">
+                                <option value="Aktif" {{ $sStatus == 'Aktif' ? 'selected' : '' }}>Aktif</option>
+                                <option value="Non-Aktif" {{ $sStatus == 'Non-Aktif' ? 'selected' : '' }}>Non-Aktif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3 text-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning btn-sm rounded-pill px-4 fw-semibold text-dark shadow-sm">Simpan Perubahan</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 @endforeach
 
-</div>
-@endsection
-
-@push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const formatRupiah = (input) => {
-            let angka = input.value.replace(/[^,\d]/g, '').toString();
-            let split = angka.split(',');
-            let sisa = split[0].length % 3;
-            let rupiah = split[0].substr(0, sisa);
-            let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-
-            if (ribuan) {
-                let separator = sisa ? '.' : '';
-                rupiah += separator + ribuan.join('.');
-            }
-
-            rupiah = split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
-            input.value = rupiah;
-
-            // Masukkan nilai asli (tanpa titik) ke input hidden
-            let hiddenInput = input.parentElement.querySelector('.rupiah-hidden');
+document.addEventListener('DOMContentLoaded', function () {
+    // Handling Input Rupiah Visual Mask & Real Value
+    const rupiahInputs = document.querySelectorAll('.rupiah-input');
+    
+    rupiahInputs.forEach(input => {
+        const hiddenInput = input.parentElement.querySelector('.rupiah-hidden');
+        
+        if (input.value) {
+            input.value = formatRupiah(input.value);
+        }
+        
+        input.addEventListener('keyup', function () {
+            let cleanNumber = this.value.replace(/[^,\d]/g, '').toString();
+            this.value = formatRupiah(cleanNumber);
             if (hiddenInput) {
-                hiddenInput.value = angka.replace(/\./g, '');
+                hiddenInput.value = cleanNumber;
             }
-        };
-
-        const rupiahInputs = document.querySelectorAll('.rupiah-input');
-
-        rupiahInputs.forEach(input => {
-            // Format otomatis saat halaman diload / modal dibuka jika ada angka
-            if (input.value && !isNaN(input.value)) {
-                formatRupiah(input);
-            }
-
-            input.addEventListener('input', function () {
-                formatRupiah(this);
-            });
         });
     });
+
+    function formatRupiah(angka) {
+        let number_string = angka.toString().replace(/[^,\d]/g, ''),
+            split = number_string.split(','),
+            sisa = split[0].length % 3,
+            rupiah = split[0].substr(0, sisa),
+            ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+
+        return split[1] !== undefined ? rupiah + ',' + split[1] : rupiah;
+    }
+
+    // Retain Tab Active state jika ada URL query ?tab=supplier
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('tab') === 'supplier') {
+        const supplierTabTrigger = document.querySelector('#tab-supplier');
+        if (supplierTabTrigger) {
+            const tab = new bootstrap.Tab(supplierTabTrigger);
+            tab.show();
+        }
+    }
+});
 </script>
-@endpush
+@endsection

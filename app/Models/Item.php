@@ -11,18 +11,18 @@ class Item extends Model
 
     protected $table = 'items';
 
-   protected $fillable = [
-    'item_code',
-    'name',
-    'category',
-    'unit',
-    'stok',
-    'stok_min',
-    'lokasi',
-    'supplier',
-    'harga',
-    'status',
-];
+    protected $fillable = [
+        'item_code',
+        'name',
+        'category',
+        'unit',
+        'stok',
+        'stok_min',
+        'lokasi',
+        'supplier', 
+        'harga',
+        'status',
+    ];
 
     protected $casts = [
         'stok' => 'integer',
@@ -30,11 +30,20 @@ class Item extends Model
         'harga' => 'decimal:2',
     ];
 
-    /**
-     * Relasi ke ItemRequest (One to Many)
-     */
     public function itemRequests()
     {
         return $this->hasMany(ItemRequest::class, 'item_id');
+    }
+
+    // Relasi ke Riwayat Transaksi Stok (In/Out)
+    public function stockTransactions()
+    {
+        return $this->hasMany(StockTransaction::class, 'item_id');
+    }
+
+    // Relasi ke Production Order
+    public function productionOrders()
+    {
+        return $this->hasMany(ProductionOrder::class, 'item_id');
     }
 }
