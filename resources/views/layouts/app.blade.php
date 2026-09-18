@@ -4,19 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Capstone Project - Industrial System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- SweetAlert2 CSS / JS CDN (Wajib untuk Toast Notifikasi) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             color: #1e293b;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
-        /* Background Vektor Gear Tipis di Tema Terang */
         .gear-bg {
             position: fixed;
             top: 0;
@@ -27,27 +38,31 @@
             background-repeat: no-repeat;
             background-position: right bottom;
             z-index: -1;
+            pointer-events: none;
         }
 
-        /* Sidebar Kiri Terang */
+        /* Glassmorphism Sidebar - Bening & Transparan */
         .sidebar {
             height: 100vh;
             width: 260px;
             position: fixed;
             top: 0;
             left: 0;
-            background-color: #ffffff;
-            border-right: 1px solid #e2e8f0;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.6);
             padding-top: 25px;
             z-index: 100;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.02);
+            box-shadow: 8px 0 32px 0 rgba(31, 38, 135, 0.04);
+            overflow-y: auto;
         }
 
         .sidebar .brand {
             font-size: 1.2rem;
             font-weight: 700;
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 25px;
             color: #0f172a;
             letter-spacing: 1px;
         }
@@ -60,20 +75,28 @@
             padding: 10px 25px;
         }
 
+        /* Styling Menu Utama dengan Efek Kaca Bening saat di-hover */
         .sidebar a {
-            padding: 12px 25px;
+            padding: 12px 20px;
             text-decoration: none;
             font-size: 0.9rem;
-            color: #64748b;
+            color: #334155;
             display: block;
-            transition: 0.3s;
-            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            margin: 5px 14px;
+            position: relative;
+            font-weight: 500;
+            border: 1px solid transparent;
         }
 
+        /* Efek Hover Kaca Bening Bersih */
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
-            background-color: #fff7ed;
-            border-left: 3px solid #ff6600;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            transform: translateX(3px);
             font-weight: 600;
         }
 
@@ -83,7 +106,31 @@
             text-align: center;
         }
 
-        /* Container Utama */
+        /* Styling Sub-menu */
+        .sidebar .submenu {
+            padding-left: 35px;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 3px 10px 3px 18px;
+            border-radius: 8px;
+            color: #475569;
+        }
+
+        .sidebar .submenu:hover, .sidebar .submenu.active {
+            color: #ff6600 !important;
+            background: rgba(255, 255, 255, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transform: translateX(3px);
+        }
+
+        /* Rotasi panah dropdown */
+        [data-bs-toggle="collapse"] .fa-chevron-down {
+            transition: transform 0.3s ease;
+        }
+        [data-bs-toggle="collapse"].collapsed .fa-chevron-down {
+            transform: rotate(-90deg);
+        }
+
         .main-content {
             margin-left: 260px;
             padding: 40px;
@@ -133,7 +180,6 @@
             color: #fff;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -143,6 +189,7 @@
         <div class="brand">
             <i class="fa-solid fa-cube text-danger me-2"></i> CAPSTONE 2026
         </div>
+        
         <div class="sidebar-category">Modules</div>
         
         <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
@@ -153,24 +200,42 @@
             <i class="fa-solid fa-industry"></i> Production
         </a>
         
-        <a href="/inventory" class="{{ Request::is('inventory*') ? 'active' : '' }}">
-            <i class="fa-solid fa-boxes-stacked"></i> Inventory
+        <!-- Inventory (Dropdown Utama dengan Panah) -->
+        <a href="#inventoryDropdown" data-bs-toggle="collapse" 
+           class="d-flex justify-content-between align-items-center {{ request()->is('inventory*') ? 'active' : '' }}" 
+           aria-expanded="{{ request()->is('inventory*') ? 'true' : 'false' }}">
+            <div>
+                <i class="fa-solid fa-boxes-stacked"></i> Inventory
+            </div>
+            <i class="fa-solid fa-chevron-down small"></i>
         </a>
+        
+        <!-- Isi Sub-menu Inventory -->
+        <div class="collapse {{ request()->is('inventory*') ? 'show' : '' }}" id="inventoryDropdown">
+            <a href="{{ Route::has('inventory.produksi.index') ? route('inventory.produksi.index') : '#' }}" class="submenu {{ request()->is('inventory/produksi') && !request()->is('*/requests*') ? 'active' : '' }}">
+                <i class="fa-solid fa-gears"></i> Produksi 
+            </a>
+            <a href="{{ Route::has('inventory.produksi.requests.index') ? route('inventory.produksi.requests.index') : '#' }}" class="submenu {{ request()->is('inventory/produksi/requests*') ? 'active' : '' }}">
+                <i class="fa-solid fa-clipboard-check"></i> Request & Approval
+            </a>
+            <a href="{{ Route::has('inventory.po.index') ? route('inventory.po.index') : '#' }}" class="submenu {{ request()->is('inventory/po*') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-invoice"></i> Purchase Order
+            </a>
+        </div>
 
         <!-- PENGAMAN ERROR RESOURCES -->
         @php
             $pendingApprovalCount = 0;
             try {
-                // Mengecek apakah model dan tabelnya benar-benar sudah ada di database sebelum dihitung
                 if (class_exists('\App\Models\ApprovalRequest') && \Illuminate\Support\Facades\Schema::hasTable('approval_requests')) {
                     $pendingApprovalCount = \App\Models\ApprovalRequest::where('status', 'pending')->count();
                 }
             } catch (\Exception $e) {
-                $pendingApprovalCount = 0; // Jika error/belum migrate, paksa jadi 0 agar web tidak crash
+                $pendingApprovalCount = 0;
             }
         @endphp
 
-        <!-- Perbaikan Link Route Resources agar aman diklik -->
+        <!-- Link Route Resources -->
         <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="{{ request()->routeIs('man-power.*') || request()->is('machine*') ? 'active' : '' }}">
             <div class="d-flex justify-content-between align-items-center w-100">
                 <div><i class="fa-solid fa-users-gear"></i> Resources</div>
@@ -188,6 +253,7 @@
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
+        <!-- Capstone Support Info (Di pojok bawah) -->
         <div style="position: absolute; bottom: 20px; width: 100%; padding: 0 20px;">
             <div class="p-3 rounded-3" style="background-color: #f8f9fa; border: 1px solid #eaedf1;">
                 <div class="d-flex align-items-center mb-2">
@@ -204,10 +270,18 @@
         </div>
     </div>
 
+    <!-- AREA KONTEN UTAMA HALAMAN -->
     <div class="main-content">
+        @if(View::exists('components.notification'))
+            <x-notification />
+        @endif
+
         @yield('content')
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    @stack('scripts')
 </body>
 </html>
