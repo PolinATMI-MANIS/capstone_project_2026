@@ -1,10 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-<!-- Header Dashboard & Profile Dropdown -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<!-- Header Utama: Judul & Profile Widget -->
+<div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
     <div>
-        <h3 class="fw-bold m-0 text-dark">Dashboard Overview</h3>
+        <span class="badge bg-warning text-dark fw-bold mb-1 px-2 py-1" style="font-size: 11px; letter-spacing: 0.5px;">SYSTEM OVERVIEW</span>
+        <h1 class="fw-bold display-6 m-0 text-dark" style="letter-spacing: -0.5px;">DASHBOARD</h1>
         <p class="text-muted small m-0 mt-1">Rekapan data operasional dari seluruh modul Capstone Industrial System.</p>
     </div>
 
@@ -95,7 +96,7 @@
         <a href="/purchase" class="text-decoration-none">
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="text-muted small text-uppercase font-monospace fw-bold">Order Here !</span>
+                    <span class="text-muted small text-uppercase font-monospace fw-bold">Purchase & Delivery Order</span>
                     <div class="bg-warning bg-opacity-10 p-2 rounded text-warning">
                         <i class="fa-solid fa-cart-shopping fs-5"></i>
                     </div>
@@ -130,7 +131,6 @@
         @endphp
 
         @if($role === 'super_admin')
-            <!-- TABEL SUPER ADMIN (Approval Hapus Data) -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -193,7 +193,6 @@
             </div>
             
         @elseif($role === 'admin')
-            <!-- TABEL ADMIN (Approval SPK / Resource dari User) -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -256,7 +255,6 @@
             </div>
             
         @else
-            <!-- TABEL USER BIASA -->
             <div class="card border-0 shadow-sm rounded-3 p-4 text-center">
                 <p class="text-muted mb-0"><i class="fa-solid fa-bell-slash text-muted fs-4 d-block mb-2"></i> Belum ada notifikasi.</p>
             </div>
@@ -302,7 +300,7 @@
     <div class="col-md-6">
         <div class="card border-0 shadow-sm rounded-3 h-100">
             <div class="card-header bg-white border-0 py-3">
-                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-cart-shopping text-warning me-2"></i> Tipe Dokumen Order</h6>
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-cart-shopping text-warning me-2"></i> Data Purchase & Delivery Order</h6>
             </div>
             <div class="card-body d-flex align-items-center justify-content-center">
                 <div style="width: 60%;">
@@ -325,6 +323,142 @@
         </div>
     </div>
 </div>
+
+<!-- OFFCANVAS PROFILE SIDEBAR -->
+<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel" style="width: 380px;">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center" id="profileOffcanvasLabel">
+            <i class="fa-solid fa-user-circle me-2 text-danger"></i> Profile Info
+        </h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    <div class="offcanvas-body p-4">
+        <div class="text-center mb-4">
+            <div class="bg-warning bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center text-warning fw-bold mb-3 shadow-sm" style="width: 90px; height: 90px; font-size: 2.5rem;">
+                <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <h5 class="fw-bold m-0 text-dark">{{ Auth::user()->name ?? 'Pengguna Capstone' }}</h5>
+            <p class="text-muted small mb-2">{{ Auth::user()->email ?? 'user@capstone.co.id' }}</p>
+            <span class="badge bg-danger text-uppercase px-3 py-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                {{ str_replace('_', ' ', Auth::user()->role ?? 'USER') }}
+            </span>
+        </div>
+
+        <hr class="my-4 text-muted opacity-25">
+
+        @if($role === 'super_admin')
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Otoritas & Akses</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-shield-halved text-danger me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Akses Utama</span>
+                        <span class="text-muted small">Full Control & Approval Hapus Data</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-user-shield text-primary me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Manajemen Pengguna</span>
+                        <span class="text-muted small">Kelola Akun Admin & User</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Status Sistem</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Status Server:</span>
+                        <span class="badge bg-success">Online</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Permintaan Hapus Data:</span>
+                        <span class="fw-bold text-dark small">{{ $pendingCount ?? 0 }} Pending</span>
+                    </div>
+                </div>
+            </div>
+
+        @elseif($role === 'admin')
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Tanggung Jawab Modul</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-briefcase text-warning me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Divisi Operasional</span>
+                        <span class="text-muted small">Production & Inventory Manager</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-check-double text-success me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Wewenang Approval</span>
+                        <span class="text-muted small">Approve Pengajuan Order & Input Data</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Statistik Kerja</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Pengajuan Butuh Approval:</span>
+                        <span class="badge bg-warning text-dark">{{ $pendingCount ?? 0 }} Pengajuan</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Dokumen Disetujui:</span>
+                        <span class="fw-bold text-dark small">0 Minggu Ini</span>
+                    </div>
+                </div>
+            </div>
+
+        @else
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Informasi Karyawan</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-id-badge text-info me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">NIP / ID Staff</span>
+                        <span class="text-muted small">EMP-2026-089</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-clock text-secondary me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Shift Kerja</span>
+                        <span class="text-muted small">Shift 1 (08.00 - 17.00 WIB)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Aktivitas Pengajuan</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Pengajuan Pending:</span>
+                        <span class="badge bg-info">{{ $pendingCount ?? 0 }} Dokumen</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Hak Akses Modul:</span>
+                        <span class="fw-bold text-dark small">View & Print Only</span>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <div class="border-top pt-3 mt-4 text-center">
+            <p class="text-muted m-0" style="font-size: 0.75rem;">
+                <i class="fa-solid fa-lock me-1"></i> Terenkripsi & Terkoneksi Capstone System
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
+</style>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -400,9 +534,4 @@
         });
     });
 </script>
-
-<style>
-    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
-</style>
 @endsection

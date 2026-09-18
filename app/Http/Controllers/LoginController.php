@@ -9,6 +9,17 @@ class LoginController extends Controller
 {
     public function authenticate(Request $request)
     {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect()->intended('/dashboard');
+        }
+
+        return back()->with('loginError', 'Email atau password salah!');
         // 1. Validasi data yang dikirim dari form
         $credentials = $request->validate([
             'email' => 'required|email',

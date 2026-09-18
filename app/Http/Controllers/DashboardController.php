@@ -21,9 +21,7 @@ class DashboardController extends Controller
 
         $pendingApprovals = []; 
         
-        // 1. JIKA YANG LOGIN SUPER ADMIN
         if ($role == 'super_admin') {
-            // A. Request Hapus SPK dari Admin
             $reqHapusProduksi = ProductionOrder::where('status', 'Menunggu Dihapus')->get();
             foreach ($reqHapusProduksi as $req) {
                 $pendingApprovals[] = (object)[
@@ -38,7 +36,6 @@ class DashboardController extends Controller
                 ];
             }
 
-            // B. Request Hapus Man Power & Machine Power dari Admin
             $reqDeleteResource = ApprovalRequest::where('action_type', 'delete')->get();
             foreach ($reqDeleteResource as $req) {
                 $pendingApprovals[] = (object)[
@@ -53,9 +50,7 @@ class DashboardController extends Controller
                 ];
             }
         } 
-        // 2. JIKA YANG LOGIN ADMIN BIASA
         elseif ($role == 'admin') {
-            // A. Request SPK Baru dari User/Operator
             $reqSpkBaru = ProductionOrder::where('status', 'Menunggu Approval Admin')->get();
             foreach ($reqSpkBaru as $req) {
                 $pendingApprovals[] = (object)[
@@ -70,10 +65,9 @@ class DashboardController extends Controller
                 ];
             }
 
-            // B. Request Tambah/Edit Man Power & Machine Power dari User/Operator
             $reqResourceUser = ApprovalRequest::whereIn('action_type', ['create', 'update'])
-                                               ->whereIn('target_type', ['ManPower', 'MachinePower'])
-                                               ->get();
+                                              ->whereIn('target_type', ['ManPower', 'MachinePower'])
+                                              ->get();
             foreach ($reqResourceUser as $req) {
                 $pendingApprovals[] = (object)[
                     'id'          => $req->id,

@@ -8,6 +8,8 @@ use App\Http\Controllers\MachinePowerController;
 use App\Http\Controllers\WaitingResourceController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\DeliveryOrderController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RnDfeatureController;
@@ -21,7 +23,6 @@ use App\Models\MachinePower;
 |--------------------------------------------------------------------------
 */
 
-// Halaman utama diarahkan ke man-power sesuai modul kamu
 Route::get('/', function () {
     return redirect()->route('man-power.index');
 });
@@ -42,7 +43,7 @@ Route::post('/produksi/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'
 Route::post('/produksi/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('produksi.request_delete');
 Route::post('/produksi/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('produksi.approve_delete');
 
-// Rute Man Power (URUTAN DIPERBAIKI: /update-status DI ATAS PARAMETER)
+// Rute Man Power
 Route::get('/man-power', [ManPowerController::class, 'index'])->name('man-power.index');
 Route::get('/man-power/create', [ManPowerController::class, 'create'])->name('man-power.create');
 Route::post('/man-power', [ManPowerController::class, 'store'])->name('man-power.store');
@@ -53,7 +54,7 @@ Route::patch('/man-power/{manPower}', [ManPowerController::class, 'update']);
 Route::post('/man-power/{manPower}/update-process', [ManPowerController::class, 'update'])->name('man-power.update-process');
 Route::delete('/man-power/{manPower}', [ManPowerController::class, 'destroy'])->name('man-power.destroy');
 
-// Rute Machine Power (URUTAN DIPERBAIKI: /update-status DI ATAS PARAMETER)
+// Rute Machine Power
 Route::get('/machine-power', [MachinePowerController::class, 'index'])->name('machine-power.index');
 Route::get('/machine-power/create', [MachinePowerController::class, 'create'])->name('machine-power.create');
 Route::post('/machine-power', [MachinePowerController::class, 'store'])->name('machine-power.store');
@@ -93,7 +94,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
-    // ROUTE: Eksekusi Approve / Reject untuk ManPower & MachinePower dari Dashboard
+    // Eksekusi Approve / Reject untuk ManPower & MachinePower dari Dashboard
     Route::match(['get', 'post'], '/approval-request/{id}/process', function (\Illuminate\Http\Request $request, $id) {
         $approval = ApprovalRequest::findOrFail($id);
         $action = $request->input('action'); 
@@ -139,9 +140,6 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin,admin')->group(function () {
         Route::get('/inventory', function () { return "Halaman Inventory (Dalam Pengembangan)"; });
         Route::get('/production', function () { return "Halaman Production (Dalam Pengembangan)"; });
-    });
-
-    Route::middleware('role:super_admin')->group(function () {
     });
 
     Route::post('/waiting-resources/update-status/{id}', [WaitingResourceController::class, 'updateStatus'])->name('waiting-resources.update');
