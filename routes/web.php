@@ -32,12 +32,8 @@ Route::get('/produksi', [ProduksiController::class, 'index'])->name('produksi.in
 Route::post('/produksi/store', [ProduksiController::class, 'store'])->name('produksi.store');
 Route::post('/produksi/{id}/material-request', [ProduksiController::class, 'submitMaterialRequest'])->name('produksi.material.request');
 Route::post('/produksi/{id}/final-qc', [ProduksiController::class, 'submitFinalQc'])->name('produksi.final.qc');
-
-// Rute Sistem Andon (Downtime/Trouble)
 Route::post('/produksi/{id}/trouble', [ProduksiController::class, 'reportTrouble'])->name('produksi.trouble');
 Route::post('/produksi/{id}/resolve', [ProduksiController::class, 'resolveTrouble'])->name('produksi.resolve');
-
-// Rute Akses Role (Admin & Super Admin)
 Route::post('/produksi/{id}/approve-spk', [ProduksiController::class, 'approveSpk'])->name('produksi.approve_spk');
 Route::post('/produksi/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'])->name('produksi.reject_spk');
 Route::post('/produksi/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('produksi.request_delete');
@@ -101,31 +97,16 @@ Route::middleware('auth')->group(function () {
 
         if ($action === 'approve') {
             $payload = json_decode($approval->payload, true);
-
             if ($approval->action_type === 'create') {
-                if ($approval->target_type === 'ManPower') {
-                    ManPower::create($payload);
-                } elseif ($approval->target_type === 'MachinePower') {
-                    MachinePower::create($payload);
-                }
+                if ($approval->target_type === 'ManPower') ManPower::create($payload);
+                elseif ($approval->target_type === 'MachinePower') MachinePower::create($payload);
             } elseif ($approval->action_type === 'update') {
-                if ($approval->target_type === 'ManPower') {
-                    $target = ManPower::find($approval->target_id);
-                    if ($target) $target->update($payload);
-                } elseif ($approval->target_type === 'MachinePower') {
-                    $target = MachinePower::find($approval->target_id);
-                    if ($target) $target->update($payload);
-                }
+                if ($approval->target_type === 'ManPower') { $t = ManPower::find($approval->target_id); if($t) $t->update($payload); }
+                elseif ($approval->target_type === 'MachinePower') { $t = MachinePower::find($approval->target_id); if($t) $t->update($payload); }
             } elseif ($approval->action_type === 'delete') {
-                if ($approval->target_type === 'ManPower') {
-                    $target = ManPower::find($approval->target_id);
-                    if ($target) $target->delete();
-                } elseif ($approval->target_type === 'MachinePower') {
-                    $target = MachinePower::find($approval->target_id);
-                    if ($target) $target->delete();
-                }
+                if ($approval->target_type === 'ManPower') { $t = ManPower::find($approval->target_id); if($t) $t->delete(); }
+                elseif ($approval->target_type === 'MachinePower') { $t = MachinePower::find($approval->target_id); if($t) $t->delete(); }
             }
-
             $approval->delete();
             return back()->with('success', 'Pengajuan berhasil disetujui!');
         } else {
@@ -134,8 +115,26 @@ Route::middleware('auth')->group(function () {
         }
     })->name('approval.process');
 
+    // --- PURCHASE & DELIVERY (Modul Tim Lain yg Direstore) ---
+    Route::get('/purchase-delivery', [PurchaseController::class, 'hub'])->name('purchase.hub');
+    
+    Route::get('/purchase', [PurchaseController::class, 'index'])->name('purchase.index');
+    Route::get('/purchase/{id}', [PurchaseController::class, 'show']);
+    Route::post('/purchase/store', [PurchaseController::class, 'store']);
+    Route::put('/purchase/{id}', [PurchaseController::class, 'update']);
+    Route::patch('/purchase/{id}/approval', [PurchaseController::class, 'approval']);
+    Route::post('/purchase/{id}/request-delete', [PurchaseController::class, 'requestDelete'])->name('purchase.requestDelete');
+    Route::delete('/purchase/{id}', [PurchaseController::class, 'destroy'])->name('purchase.destroy');
+
+    Route::get('/delivery', [DeliveryOrderController::class, 'index'])->name('delivery.index');
+    Route::get('/delivery/{id}', [DeliveryOrderController::class, 'show']);
+    Route::post('/delivery/store', [DeliveryOrderController::class, 'store']);
+    Route::put('/delivery/{id}/confirm', [DeliveryOrderController::class, 'confirmDelivery']);
+    Route::patch('/delivery/{id}/approval', [DeliveryOrderController::class, 'approval']);
+    Route::delete('/delivery/{id}', [DeliveryOrderController::class, 'destroy']);
+    // ---------------------------------------------------------
+
     Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
-    Route::get('/purchase', function () { return "Halaman Order Here! (Dalam Pengembangan)"; });
 
     Route::middleware('role:super_admin,admin')->group(function () {
         Route::get('/inventory', function () { return "Halaman Inventory (Dalam Pengembangan)"; });
