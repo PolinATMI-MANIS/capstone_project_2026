@@ -296,12 +296,12 @@
 
         if (selectAll) {
             selectAll.addEventListener('change', function () {
-                const isChecked = this.checked;
+                const isChecked = this.checked;  
                 checkboxes.forEach(cb => cb.checked = isChecked);
             });
         }
-
-        if (btnHapusSemua) {
+  
+        if (btnHapusSemua) {  
             btnHapusSemua.addEventListener('click', function () {
                 const selectedIds = Array.from(document.querySelectorAll('.request-checkbox:checked')).map(cb => cb.value);
                 
@@ -315,7 +315,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'  
                         },
                         body: JSON.stringify({ ids: selectedIds })
                     })
