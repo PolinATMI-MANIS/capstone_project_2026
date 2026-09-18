@@ -2,15 +2,14 @@
 
 @section('content')
 
+@php
+    $inventoryItems = class_exists('\App\Models\Item') ? \App\Models\Item::all() : [];
+    $manPowerList = class_exists('\App\Models\ManPower') ? \App\Models\ManPower::all() : [];
+    $machineList = class_exists('\App\Models\MachinePower') ? \App\Models\MachinePower::all() : [];
+@endphp
+
 <!-- WADAH UTAMA UNTUK MENCEGAH KONTEN TERDORONG KE BAWAH -->
 <div class="container-fluid p-0 m-0 w-100">
-
-    <!-- MENGAMBIL SELURUH DATA DARI MODUL LAIN SECARA DINAMIS -->
-    @php
-        $inventoryItems = class_exists('\App\Models\Item') ? \App\Models\Item::all() : [];
-        $manPowerList = class_exists('\App\Models\ManPower') ? \App\Models\ManPower::all() : [];
-        $machineList = class_exists('\App\Models\MachinePower') ? \App\Models\MachinePower::all() : [];
-    @endphp
 
     <style>
         .btn-brand-orange { background: linear-gradient(135deg, #ff6600 0%, #e55c00 100%); color: white; font-weight: 600; border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2); transition: all 0.2s ease; }
@@ -46,15 +45,10 @@
             <h3 class="fw-bolder mb-1" style="color: #0f172a; letter-spacing: -0.5px;">Production Directory</h3>
             <p class="text-muted mb-0" style="font-size: 0.9rem;">
                 Hak Akses Saat Ini: <span class="badge bg-dark ms-1 text-uppercase">{{ str_replace('_', ' ', $role) }}</span>
+                | <span class="text-info ms-2 fw-semibold"><i class="fa-solid fa-link me-1"></i> Terhubung dengan Sistem PO</span>
             </p>
         </div>
-        
-        <!-- User & Admin Bisa Input SPK -->
-        @if($role == 'admin' || $role == 'user')
-        <button class="btn btn-brand-orange px-4 py-2" data-bs-toggle="modal" data-bs-target="#addSpkModal">
-            <i class="fa-solid fa-plus me-2"></i> Buat SPK
-        </button>
-        @endif
+        <!-- TOMBOL BUAT SPK DIHAPUS TOTAL SESUAI SKEMA MAKE-TO-ORDER BARU -->
     </div>
 
     <!-- KPI Widgets -->
@@ -64,7 +58,7 @@
                 <div class="widget-icon bg-light text-secondary me-3"><i class="fa-solid fa-layer-group"></i></div>
                 <div>
                     <h4 class="fw-bolder mb-0" style="color:#0f172a;">{{ $totalSpk ?? 0 }}</h4>
-                    <span class="text-muted small fw-semibold text-uppercase letter-spacing-1">Total SPK Terbit</span>
+                    <span class="text-muted small fw-semibold text-uppercase letter-spacing-1">Total Order Masuk</span>
                 </div>
             </div>
         </div>
@@ -121,21 +115,24 @@
                 <table class="table table-custom align-middle mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-4">No. PO</th>
-                            <th>Produk (Item)</th>
-                            <th>Qty</th>
+                            <th class="ps-4">No. PO Ref</th>
+                            <th>Produk (Dari PO)</th>
+                            <th>Qty Order</th>
                             <th>TH (Target/Jam)</th>
-                            <th>Status</th>
+                            <th>Status Produksi</th>
                             <th class="text-end pe-4">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($orders as $order)
                             <tr>
-                                <td class="fw-bold ps-4" style="color: #0f172a;">{{ $order->no_po }}</td>
+                                <td class="fw-bold ps-4" style="color: #0f172a;">
+                                    <i class="fa-solid fa-file-invoice text-warning me-1"></i> {{ $order->no_po }}
+                                </td>
                                 <td>{{ $order->produk }}</td>
                                 <td>{{ $order->jumlah_produksi }} Pcs</td>
                                 
+                                <!-- RUMUS TH DITERAPKAN DI SINI -->
                                 <td>
                                     <span class="fw-bold text-primary">{{ ceil($order->jumlah_produksi / 8) }} Pcs</span><small class="text-muted">/jam</small>
                                 </td>
@@ -154,20 +151,21 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm">
                                         
-                                        <!-- HAK AKSES ADMIN -->
+                                        <!-- HAK AKSES ADMIN PRODUKSI -->
                                         @if($role == 'admin')
                                             @if($order->status == 'Menunggu Approval Admin')
                                                 <form action="{{ route('produksi.approve_spk', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                                     @csrf 
-                                                    <button type="submit" class="btn btn-sm btn-success fw-semibold border rounded-start"><i class="fa-solid fa-check me-1"></i> Terima</button>
+                                                    <button type="submit" class="btn btn-sm btn-success fw-semibold border rounded-start"><i class="fa-solid fa-check me-1"></i> Terima Order</button>
                                                 </form>
                                                 <form action="{{ route('produksi.reject_spk', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                                     @csrf 
-                                                    <button type="submit" class="btn btn-sm btn-danger fw-semibold border"><i class="fa-solid fa-xmark me-1"></i> Tolak</button>
+                                                    <button type="submit" class="btn btn-sm btn-danger fw-semibold border"><i class="fa-solid fa-xmark me-1"></i> Tolak Order</button>
                                                 </form>
                                             @elseif($order->status == 'Menunggu Bahan Baku')
+                                                <!-- TOMBOL MULAI PLOTTING RESOURCES -->
                                                 <button class="btn btn-sm btn-light border fw-semibold text-primary" data-bs-toggle="modal" data-bs-target="#checkModal{{ $order->id }}">
-                                                    <i class="fa-solid fa-clipboard-check me-1"></i> QC Check
+                                                    <i class="fa-solid fa-users-gear me-1"></i> Plotting & Eksekusi
                                                 </button>
                                             @elseif($order->status == 'Proses Produksi Berjalan')
                                                 <button class="btn btn-sm btn-light border fw-semibold text-danger" data-bs-toggle="modal" data-bs-target="#andonModal{{ $order->id }}">
@@ -179,7 +177,7 @@
                                             @elseif($order->status == 'Pending - Trouble')
                                                 <form action="{{ route('produksi.resolve', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                                     @csrf 
-                                                    <button type="submit" class="btn btn-sm btn-warning fw-semibold border"><i class="fa-solid fa-wrench me-1"></i> Lanjut Mesin</button>
+                                                    <button type="submit" class="btn btn-sm btn-warning fw-semibold border"><i class="fa-solid fa-wrench me-1"></i> Lanjut Produksi</button>
                                                 </form>
                                             @endif
                                             
@@ -215,7 +213,7 @@
                                     <!-- ============================== -->
 
                                     @if($role == 'admin')
-                                        <!-- Modal QC Awal -->
+                                        <!-- MODAL PLOTTING RESOURCES (EKSEKUSI PRODUKSI) -->
                                         @if($order->status == 'Menunggu Bahan Baku')
                                         <div class="modal fade text-start" id="checkModal{{ $order->id }}" tabindex="-1">
                                             <div class="modal-dialog modal-dialog-centered">
@@ -223,51 +221,51 @@
                                                     <form action="{{ route('produksi.material.request', $order->id) }}" method="POST">
                                                         @csrf 
                                                         <div class="modal-header border-0">
-                                                            <h5 class="modal-title fw-bold">Cek Kelayakan Produksi</h5>
+                                                            <h5 class="modal-title fw-bold">Eksekusi Order & Plotting</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                         </div>
                                                         <div class="modal-body">
+                                                            <div class="alert alert-warning border-0 small mb-4">
+                                                                <i class="fa-solid fa-circle-info me-1"></i> Verifikasi ketersediaan material di Inventory sebelum memulai produksi.
+                                                            </div>
+
                                                             <div class="row g-3 mb-4">
-                                                                
-                                                                <!-- INTEGRASI DROPDOWN INVENTORY -->
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small text-muted fw-bold text-primary">Pilih Material (Inventory)</label>
+                                                                <!-- VERIFIKASI INVENTORY -->
+                                                                <div class="col-md-7">
+                                                                    <label class="form-label small fw-bold text-primary">Verifikasi Material (Inventory)</label>
                                                                     <select class="form-select bg-light border-primary shadow-sm" name="item_code" required>
-                                                                        <option value="">-- Pilih Material --</option>
+                                                                        <option value="">-- Pastikan Material Ada --</option>
                                                                         @foreach($inventoryItems as $item)
                                                                             @php
                                                                                 $kode = $item->item_code ?? $item->kode_barang ?? $item->kode ?? '-';
                                                                                 $nama = $item->name ?? $item->nama_barang ?? $item->nama ?? '-';
                                                                                 $stok = $item->stock ?? $item->stok ?? $item->stok_saat_ini ?? 0;
-                                                                                
                                                                                 $isCukup = $stok >= $order->jumlah_produksi;
                                                                             @endphp
                                                                             <option value="{{ $kode }}" {{ !$isCukup ? 'disabled' : '' }} class="{{ !$isCukup ? 'text-danger' : 'text-success fw-semibold' }}">
-                                                                                {{ $kode }} - {{ $nama }} (Stok: {{ $stok }}) {{ !$isCukup ? '[STOK KURANG]' : '' }}
+                                                                                {{ $kode }} - {{ $nama }} (Stok: {{ $stok }}) {{ !$isCukup ? '[KURANG]' : '' }}
                                                                             </option>
                                                                         @endforeach
                                                                     </select>
                                                                 </div>
 
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small text-muted">Qty Kebutuhan</label>
-                                                                    <input type="number" class="form-control bg-light" name="qty_required" required value="{{ $order->jumlah_produksi }}" readonly>
+                                                                <div class="col-md-5">
+                                                                    <label class="form-label small text-muted">Kebutuhan PO</label>
+                                                                    <input type="text" class="form-control bg-light text-danger fw-bold" value="{{ $order->jumlah_produksi }} Pcs" readonly>
+                                                                    <input type="hidden" name="qty_required" value="{{ $order->jumlah_produksi }}">
                                                                 </div>
                                                             </div>
-                                                            <h6 class="fw-bold mb-3 fs-6">Kesiapan 4M & Plotting Pekerja</h6>
+
+                                                            <h6 class="fw-bold mb-3 fs-6 border-top pt-3">Plotting Mesin & Operator</h6>
                                                             
-                                                            <div class="mb-3">
-                                                                <label class="form-label small mb-1">1. Material Cukup?</label>
-                                                                <select name="is_material_ready" class="form-select bg-light" required>
-                                                                    <option value="1">Ya (Tersedia)</option>
-                                                                    <option value="0">Tidak (Kurang)</option>
-                                                                </select>
-                                                            </div>
+                                                            <!-- Input Hidden untuk bypass error system lama -->
+                                                            <input type="hidden" name="is_material_ready" value="1">
+                                                            <input type="hidden" name="is_machine_ready" value="1">
 
                                                             <!-- INTEGRASI DROPDOWN MESIN DARI RESOURCES -->
                                                             <div class="mb-3">
-                                                                <label class="form-label small mb-1 text-primary fw-bold">2. Pilih Mesin Produksi</label>
-                                                                <select name="mesin_id" class="form-select border-primary shadow-sm" required>
+                                                                <label class="form-label small mb-1 fw-bold">Pilih Mesin Produksi</label>
+                                                                <select name="mesin_id" class="form-select shadow-sm" required>
                                                                     <option value="">-- Pilih Mesin --</option>
                                                                     @forelse($machineList as $mc)
                                                                         @php
@@ -275,31 +273,28 @@
                                                                             $statusMesin = $mc->status ?? 'Active';
                                                                             $isRusak = strtolower($statusMesin) == 'maintenance' || strtolower($statusMesin) == 'rusak';
                                                                         @endphp
-                                                                        <option value="{{ $namaMesin }}" {{ $isRusak ? 'disabled' : '' }} class="{{ $isRusak ? 'text-danger' : 'text-success fw-semibold' }}">
+                                                                        <option value="{{ $namaMesin }}" {{ $isRusak ? 'disabled' : '' }} class="{{ $isRusak ? 'text-danger' : 'text-success' }}">
                                                                             {{ $namaMesin }} ({{ $statusMesin }})
                                                                         </option>
                                                                     @empty
                                                                         <option value="Mesin Default">Mesin Default</option>
                                                                     @endforelse
                                                                 </select>
-                                                                <!-- Input hidden untuk mencegah error logic Controller lama -->
-                                                                <input type="hidden" name="is_machine_ready" value="1">
                                                             </div>
 
                                                             <!-- INTEGRASI DROPDOWN OPERATOR DARI RESOURCES -->
                                                             <div class="mb-2">
-                                                                <label class="form-label small mb-1 text-primary fw-bold">3. Pilih Operator Bertugas</label>
-                                                                <select name="operator_name" class="form-select border-primary shadow-sm" required>
+                                                                <label class="form-label small mb-1 fw-bold">Pilih Operator Bertugas</label>
+                                                                <select name="operator_name" class="form-select shadow-sm" required>
                                                                     <option value="">-- Pilih Operator --</option>
                                                                     @forelse($manPowerList as $mp)
                                                                         @php
                                                                             $namaPekerja = $mp->nama_pekerja ?? $mp->nama ?? $mp->name ?? 'Pekerja ' . $mp->id;
-                                                                            $posisi = $mp->posisi ?? $mp->jabatan ?? 'Operator';
                                                                             $statusMp = $mp->status ?? 'Active';
                                                                             $isCuti = strtolower($statusMp) == 'on leave' || strtolower($statusMp) == 'cuti' || strtolower($statusMp) == 'inactive';
                                                                         @endphp
-                                                                        <option value="{{ $namaPekerja }} ({{ $posisi }})" {{ $isCuti ? 'disabled' : '' }} class="{{ $isCuti ? 'text-danger' : 'text-success fw-semibold' }}">
-                                                                            {{ $namaPekerja }} - {{ $posisi }} ({{ $statusMp }})
+                                                                        <option value="{{ $namaPekerja }}" {{ $isCuti ? 'disabled' : '' }} class="{{ $isCuti ? 'text-danger' : 'text-success' }}">
+                                                                            {{ $namaPekerja }} ({{ $statusMp }})
                                                                         </option>
                                                                     @empty
                                                                         @if(isset($operators) && count($operators) > 0)
@@ -315,7 +310,7 @@
 
                                                         </div>
                                                         <div class="modal-footer border-0 pt-0">
-                                                            <button type="submit" class="btn-brand-orange px-4 w-100 py-2 rounded-2">Proses Mulai Produksi</button>
+                                                            <button type="submit" class="btn btn-primary px-4 w-100 py-2 rounded-2 fw-bold">Mulai Proses Produksi</button>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -393,12 +388,13 @@
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <div class="modal-header border-0 pb-0">
-                                                    <h5 class="modal-title fw-bold" style="color:#0f172a;">Detail SPK</h5>
+                                                    <h5 class="modal-title fw-bold" style="color:#0f172a;">Detail Order Produksi</h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <div class="modal-body text-center">
-                                                    <h4 class="fw-bold mb-0 mt-2">{{ $order->no_po }}</h4>
-                                                    <p class="text-muted small mb-3">{{ $order->produk }} | Target: {{ $order->jumlah_produksi }} Pcs</p>
+                                                    <span class="badge bg-warning text-dark mb-2">Ref PO: {{ $order->no_po }}</span>
+                                                    <h5 class="fw-bold mb-0 mt-1">{{ $order->produk }}</h5>
+                                                    <p class="text-muted small mb-3">Target Produksi: {{ $order->jumlah_produksi }} Pcs</p>
                                                     <div class="text-start p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.85rem; white-space: pre-wrap; color: #475569; max-height: 150px; overflow-y: auto;">
                                                         <strong>Riwayat Status & Catatan:</strong><br>{{ $order->keterangan ?? 'Belum ada catatan.' }}
                                                     </div>
@@ -413,9 +409,10 @@
                             <tr>
                                 <td colspan="6" class="text-center py-5">
                                     <div class="d-inline-flex justify-content-center align-items-center rounded-circle mb-3" style="width: 80px; height: 80px; background-color: #f1f5f9;">
-                                        <i class="fa-solid fa-box-open fs-2 text-muted"></i>
+                                        <i class="fa-solid fa-inbox fs-2 text-muted"></i>
                                     </div>
-                                    <h6 class="fw-bold mb-1" style="color:#0f172a;">Belum Ada Data Produksi</h6>
+                                    <h6 class="fw-bold mb-1" style="color:#0f172a;">Belum Ada Order dari PO</h6>
+                                    <p class="text-muted small">Pesanan akan otomatis muncul di sini setelah dibuat dari modul Purchase Order.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -428,51 +425,6 @@
     <div class="d-flex justify-content-end mt-4">
         {{ $orders->appends(request()->query())->links('pagination::bootstrap-5') }}
     </div>
-
-    <!-- Modal Form Tambah SPK (Hanya User & Admin) -->
-    @if($role == 'admin' || $role == 'user')
-    <div class="modal fade" id="addSpkModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form action="{{ route('produksi.store') }}" method="POST">
-                    @csrf 
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title fw-bold" style="color:#0f172a;">Buat SPK Baru</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">No. Production Order</label>
-                            <input type="text" class="form-control bg-light" name="no_po" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">Nama Produk</label>
-                            <input type="text" class="form-control bg-light" name="produk" required>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small text-muted">Target Qty (Pcs)</label>
-                                <input type="number" class="form-control bg-light" name="jumlah_produksi" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small text-muted">Deadline</label>
-                                <input type="date" class="form-control bg-light" name="target_selesai" required>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label fw-semibold small text-muted">Keterangan Opsional</label>
-                            <textarea class="form-control bg-light" name="keterangan" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 mt-2">
-                        <button type="button" class="btn btn-light fw-medium px-4" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-brand-orange px-4 py-2">Simpan SPK</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
 
 </div>
 <!-- AKHIR WADAH UTAMA -->

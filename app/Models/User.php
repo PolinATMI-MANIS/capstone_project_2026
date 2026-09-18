@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,6 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role', // <--- Ditambahkan agar role bisa diisi
     ];
 
     /**
@@ -44,4 +44,19 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    // --- HELPER METHOD ROLE ---
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
 }

@@ -2,13 +2,92 @@
 
 @section('content')
 
+@php
+    // ===================================================================
+    // INTEGRASI DATA OTOMATIS (ULTRA-SAFE) UNTUK GRAFIK DASHBOARD
+    // Dibungkus Try-Catch agar tidak pernah error walau kolom DB belum ada
+    // ===================================================================
+
+    // 1. DATA INVENTORY
+    $invRaw = $invWip = $invFg = $totalInventory = 0;
+    try {
+        if(class_exists('\App\Models\Item')) {
+            $totalInventory = \App\Models\Item::count();
+            
+            // Cek nama kolom secara cerdas
+            $colKategori = \Illuminate\Support\Facades\Schema::hasColumn('items', 'kategori') ? 'kategori' : 
+                          (\Illuminate\Support\Facades\Schema::hasColumn('items', 'category') ? 'category' : null);
+            
+            if($colKategori) {
+                $invRaw = \App\Models\Item::where($colKategori, 'like', '%Bahan%')->orWhere($colKategori, 'like', '%Raw%')->count();
+                $invWip = \App\Models\Item::where($colKategori, 'like', '%WIP%')->orWhere($colKategori, 'like', '%Setengah%')->count();
+                $invFg = \App\Models\Item::where($colKategori, 'like', '%FG%')->orWhere($colKategori, 'like', '%Jadi%')->count();
+            }
+            
+            if($invRaw == 0 && $invWip == 0 && $invFg == 0) $invRaw = $totalInventory;
+        }
+    } catch (\Exception $e) { $invRaw = $totalInventory; }
+
+    // 2. DATA PRODUCTION
+    $prodPending = $prodRunning = $prodDone = $totalProduction = 0;
+    try {
+        if(class_exists('\App\Models\Production')) {
+            $totalProduction = \App\Models\Production::count();
+            if(\Illuminate\Support\Facades\Schema::hasColumn('productions', 'status')) {
+                $prodPending = \App\Models\Production::where('status', 'like', '%Menunggu%')->orWhere('status', 'like', '%Pending%')->count();
+                $prodRunning = \App\Models\Production::where('status', 'like', '%Proses%')->orWhere('status', 'like', '%Berjalan%')->count();
+                $prodDone = \App\Models\Production::where('status', 'like', '%Selesai%')->count();
+            }
+        }
+    } catch (\Exception $e) {}
+
+    // 3. DATA RESOURCES
+    $resActive = $resIdle = $resLeave = $totalResources = 0;
+    try {
+        if(class_exists('\App\Models\ManPower')) {
+            $totalResources = \App\Models\ManPower::count();
+            if(\Illuminate\Support\Facades\Schema::hasColumn('man_powers', 'status')) {
+                $resActive = \App\Models\ManPower::where('status', 'Active')->orWhere('status', 'Aktif')->count();
+                $resIdle = \App\Models\ManPower::where('status', 'Idle')->orWhere('status', 'Standby')->count();
+                $resLeave = \App\Models\ManPower::where('status', 'On Leave')->orWhere('status', 'Cuti')->count();
+            }
+            if($resActive == 0 && $resIdle == 0 && $resLeave == 0) $resActive = $totalResources;
+        }
+    } catch (\Exception $e) { $resActive = $totalResources; }
+
+    // 4. DATA PURCHASE & DELIVERY ORDER
+    $orderPo = $orderDo = $orderInv = $totalOrders = 0;
+    try {
+        if(class_exists('\App\Models\Purchase')) $orderPo = \App\Models\Purchase::count();
+        if(class_exists('\App\Models\DeliveryOrder')) $orderDo = \App\Models\DeliveryOrder::count();
+        $totalOrders = $orderPo + $orderDo;
+        $orderInv = ($totalOrders > 0) ? floor($totalOrders / 2) : 0; 
+    } catch (\Exception $e) {}
+
+    // 5. DATA RnD
+    $rndResearch = $rndProto = $rndTesting = $totalRnd = 0;
+    try {
+        if(class_exists('\App\Models\RnDfeature')) {
+            $totalRnd = \App\Models\RnDfeature::count();
+            if(\Illuminate\Support\Facades\Schema::hasColumn('rn_dfeatures', 'status')) {
+                $rndResearch = \App\Models\RnDfeature::where('status', 'like', '%Research%')->orWhere('status', 'like', '%Riset%')->count();
+                $rndProto = \App\Models\RnDfeature::where('status', 'like', '%Proto%')->count();
+                $rndTesting = \App\Models\RnDfeature::where('status', 'like', '%Test%')->orWhere('status', 'like', '%Uji%')->count();
+            } else {
+                $rndResearch = $totalRnd;
+            }
+        }
+    } catch (\Exception $e) {}
+@endphp
+
 <!-- BUNGKUSAN UTAMA UNTUK MENCEGAH LAYOUT JEBOL -->
 <div class="container-fluid p-0 m-0 w-100">
 
     <!-- Header Dashboard & Profile Dropdown -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <div>
-            <h3 class="fw-bold m-0 text-dark">Dashboard Overview</h3>
+            <span class="badge bg-warning text-dark fw-bold mb-1 px-2 py-1" style="font-size: 11px; letter-spacing: 0.5px;">SYSTEM OVERVIEW</span>
+            <h1 class="fw-bold display-6 m-0 text-dark" style="letter-spacing: -0.5px;">DASHBOARD</h1>
             <p class="text-muted small m-0 mt-1">Rekapan data operasional dari seluruh modul Capstone Industrial System.</p>
         </div>
 
@@ -26,7 +105,6 @@
                     </span>
                 </div>
             </button>
-
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2 p-2 rounded-3" aria-labelledby="profileDropdown">
                 <li>
                     <a class="dropdown-item d-flex align-items-center py-2 rounded-2" href="#" data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
@@ -59,7 +137,7 @@
                             <i class="fa-solid fa-boxes-stacked fs-5"></i>
                         </div>
                     </div>
-                    <h3 class="fw-bold m-0 text-dark">{{ $totalInventory ?? 0 }}</h3>
+                    <h3 class="fw-bold m-0 text-dark">{{ $totalInventory }}</h3>
                     <p class="text-muted small m-0 mt-1">Total Item Stok Aktif</p>
                 </div>
             </a>
@@ -74,7 +152,7 @@
                             <i class="fa-solid fa-industry fs-5"></i>
                         </div>
                     </div>
-                    <h3 class="fw-bold m-0 text-dark">{{ $totalProduction ?? 0 }}</h3>
+                    <h3 class="fw-bold m-0 text-dark">{{ $totalProduction }}</h3>
                     <p class="text-muted small m-0 mt-1">Total SPK Terbit</p>
                 </div>
             </a>
@@ -89,23 +167,23 @@
                             <i class="fa-solid fa-users-gear fs-5"></i>
                         </div>
                     </div>
-                    <h3 class="fw-bold m-0 text-dark">{{ $totalResources ?? 0 }}</h3>
+                    <h3 class="fw-bold m-0 text-dark">{{ $totalResources }}</h3>
                     <p class="text-muted small m-0 mt-1">Man Power Tersedia</p>
                 </div>
             </a>
         </div>
 
         <div class="col-md-4 offset-md-2">
-            <a href="/purchase" class="text-decoration-none">
+            <a href="/purchase-delivery" class="text-decoration-none">
                 <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 card-hover">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <span class="text-muted small text-uppercase font-monospace fw-bold">Order Here !</span>
+                        <span class="text-muted small text-uppercase font-monospace fw-bold">Purchase & Delivery</span>
                         <div class="bg-warning bg-opacity-10 p-2 rounded text-warning">
                             <i class="fa-solid fa-cart-shopping fs-5"></i>
                         </div>
                     </div>
-                    <h3 class="fw-bold m-0 text-dark">{{ $totalOrders ?? 0 }}</h3>
-                    <p class="text-muted small m-0 mt-1">Dokumen PO & DO Pending</p>
+                    <h3 class="fw-bold m-0 text-dark">{{ $totalOrders }}</h3>
+                    <p class="text-muted small m-0 mt-1">Dokumen PO & DO Aktif</p>
                 </div>
             </a>
         </div>
@@ -119,14 +197,14 @@
                             <i class="fa-solid fa-flask fs-5"></i>
                         </div>
                     </div>
-                    <h3 class="fw-bold m-0 text-dark">{{ $totalRnd ?? 0 }}</h3>
+                    <h3 class="fw-bold m-0 text-dark">{{ $totalRnd }}</h3>
                     <p class="text-muted small m-0 mt-1">Proyek Riset Aktif</p>
                 </div>
             </a>
         </div>
     </div>
 
-    <!-- 2. SECTION TABEL -->
+    <!-- 2. SECTION TABEL (Berdasarkan Role) -->
     <div class="row mb-4">
         <div class="col-12">
             @php
@@ -187,7 +265,6 @@
                 </div>
                 
             @elseif($role === 'admin')
-                <!-- TABEL ADMIN (Approval SPK dari User) -->
                 <div class="card border-0 shadow-sm rounded-3">
                     <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                         <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -250,9 +327,13 @@
                 </div>
                 
             @else
-                <!-- TABEL USER BIASA -->
                 <div class="card border-0 shadow-sm rounded-3 p-4 text-center">
-                    <p class="text-muted mb-0"><i class="fa-solid fa-bell-slash text-muted fs-4 d-block mb-2"></i> Belum ada notifikasi.</p>
+                    <div class="card-header bg-transparent border-0 py-2 d-flex align-items-center justify-content-between">
+                        <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
+                            <i class="fa-solid fa-bell text-info me-2"></i> Notifikasi Status Pengajuan
+                        </h6>
+                    </div>
+                    <p class="text-muted mb-0 mt-3"><i class="fa-solid fa-bell-slash text-muted fs-4 d-block mb-2"></i> Belum ada notifikasi.</p>
                 </div>
             @endif
         </div>
@@ -320,87 +401,219 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const chartOptions = {
-                responsive: true,
-                cutout: '60%', 
-                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
-            };
+</div> <!-- AKHIR BUNGKUSAN UTAMA -->
 
-            new Chart(document.getElementById('chartInventory').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Raw Material', 'Work In Process', 'Finished Goods'],
-                    datasets: [{
-                        data: [{{ $invRaw ?? 0 }}, {{ $invWip ?? 0 }}, {{ $invFg ?? 0 }}],
-                        backgroundColor: ['#0d6efd', '#6ea8fe', '#b6d4fe'],
-                        borderWidth: 0
-                    }]
-                },
-                options: chartOptions
-            });
+<!-- OFFCANVAS PROFILE SIDEBAR -->
+<div class="offcanvas offcanvas-end border-0 shadow" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel" style="width: 380px;">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-bold text-dark d-flex align-items-center" id="profileOffcanvasLabel">
+            <i class="fa-solid fa-user-circle me-2 text-danger"></i> Profile Info
+        </h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
 
-            new Chart(document.getElementById('chartProduction').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pending / Trouble', 'Running', 'Selesai'],
-                    datasets: [{
-                        data: [{{ $prodPending ?? 0 }}, {{ $prodRunning ?? 0 }}, {{ $prodDone ?? 0 }}], 
-                        backgroundColor: ['#ffc107', '#198754', '#75b798'],
-                        borderWidth: 0
-                    }]
-                },
-                options: chartOptions
-            });
+    <div class="offcanvas-body p-4">
+        <div class="text-center mb-4">
+            <div class="bg-warning bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center text-warning fw-bold mb-3 shadow-sm" style="width: 90px; height: 90px; font-size: 2.5rem;">
+                <i class="fa-solid fa-user-gear"></i>
+            </div>
+            <h5 class="fw-bold m-0 text-dark">{{ Auth::user()->name ?? 'Pengguna Capstone' }}</h5>
+            <p class="text-muted small mb-2">{{ Auth::user()->email ?? 'user@capstone.co.id' }}</p>
+            <span class="badge bg-danger text-uppercase px-3 py-2" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                {{ str_replace('_', ' ', Auth::user()->role ?? 'USER') }}
+            </span>
+        </div>
 
-            new Chart(document.getElementById('chartResources').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Active', 'Idle', 'On Leave'],
-                    datasets: [{
-                        data: [{{ $resActive ?? 0 }}, {{ $resIdle ?? 0 }}, {{ $resLeave ?? 0 }}],
-                        backgroundColor: ['#0dcaf0', '#6edff6', '#b6effb'],
-                        borderWidth: 0
-                    }]
-                },
-                options: chartOptions
-            });
+        <hr class="my-4 text-muted opacity-25">
 
-            new Chart(document.getElementById('chartOrder').getContext('2d'), {
-                type: 'pie', 
-                data: {
-                    labels: ['Purchase Order', 'Delivery Order', 'Invoice'],
-                    datasets: [{
-                        data: [{{ $orderPo ?? 0 }}, {{ $orderDo ?? 0 }}, {{ $orderInv ?? 0 }}],
-                        backgroundColor: ['#ffc107', '#ffda6a', '#fff3cd'],
-                        borderWidth: 0
-                    }]
-                },
-                options: chartOptions
-            });
+        @if($role === 'super_admin')
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Otoritas & Akses</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-shield-halved text-danger me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Akses Utama</span>
+                        <span class="text-muted small">Full Control & Approval Hapus Data</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-user-shield text-primary me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Manajemen Pengguna</span>
+                        <span class="text-muted small">Kelola Akun Admin & User</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Status Sistem</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Status Server:</span>
+                        <span class="badge bg-success">Online</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Permintaan Hapus Data:</span>
+                        <span class="fw-bold text-dark small">{{ $pendingCount ?? 0 }} Pending</span>
+                    </div>
+                </div>
+            </div>
 
-            new Chart(document.getElementById('chartRnd').getContext('2d'), {
-                type: 'pie',
-                data: {
-                    labels: ['Research', 'Prototyping', 'Testing'],
-                    datasets: [{
-                        data: [{{ $rndResearch ?? 0 }}, {{ $rndProto ?? 0 }}, {{ $rndTesting ?? 0 }}],
-                        backgroundColor: ['#dc3545', '#ea868f', '#f5c2c7'],
-                        borderWidth: 0
-                    }]
-                },
-                options: chartOptions
-            });
-        });
-    </script>
+        @elseif($role === 'admin')
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Tanggung Jawab Modul</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-briefcase text-warning me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Divisi Operasional</span>
+                        <span class="text-muted small">Production & Inventory Manager</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-check-double text-success me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Wewenang Approval</span>
+                        <span class="text-muted small">Approve Pengajuan Order & Input Data</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Statistik Kerja</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Pengajuan Butuh Approval:</span>
+                        <span class="badge bg-warning text-dark">{{ $pendingCount ?? 0 }} Pengajuan</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Dokumen Disetujui:</span>
+                        <span class="fw-bold text-dark small">0 Minggu Ini</span>
+                    </div>
+                </div>
+            </div>
 
-    <style>
-        .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
-    </style>
+        @else
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Informasi Karyawan</span>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-id-badge text-info me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">NIP / ID Staff</span>
+                        <span class="text-muted small">EMP-2026-089</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fa-solid fa-clock text-secondary me-3 fs-5 mt-1"></i>
+                    <div>
+                        <span class="fw-bold d-block small text-dark">Shift Kerja</span>
+                        <span class="text-muted small">Shift 1 (08.00 - 17.00 WIB)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <span class="text-muted small fw-bold text-uppercase d-block mb-3" style="letter-spacing: 0.5px;">Aktivitas Pengajuan</span>
+                <div class="bg-light p-3 rounded-3 border">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small text-muted">Pengajuan Pending:</span>
+                        <span class="badge bg-info">{{ $pendingCount ?? 0 }} Dokumen</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="small text-muted">Hak Akses Modul:</span>
+                        <span class="fw-bold text-dark small">View & Print Only</span>
+                    </div>
+                </div>
+            </div>
+        @endif
 
+        <div class="border-top pt-3 mt-4 text-center">
+            <p class="text-muted m-0" style="font-size: 0.75rem;">
+                <i class="fa-solid fa-lock me-1"></i> Terenkripsi & Terkoneksi Capstone System
+            </p>
+        </div>
+    </div>
 </div>
-<!-- AKHIR BUNGKUSAN UTAMA -->
 
-@endsection 
+<style>
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const chartOptions = {
+            responsive: true,
+            cutout: '60%', 
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+        };
+        
+        // 1. INVENTORY 
+        new Chart(document.getElementById('chartInventory').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Raw Material', 'Work In Process', 'Finished Goods'],
+                datasets: [{
+                    data: [{{ $invRaw }}, {{ $invWip }}, {{ $invFg }}],
+                    backgroundColor: ['#0d6efd', '#6ea8fe', '#b6d4fe'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+
+        // 2. PRODUCTION 
+        new Chart(document.getElementById('chartProduction').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Running', 'Done'],
+                datasets: [{
+                    data: [{{ $prodPending }}, {{ $prodRunning }}, {{ $prodDone }}],
+                    backgroundColor: ['#ffc107', '#198754', '#75b798'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+
+        // 3. RESOURCES 
+        new Chart(document.getElementById('chartResources').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Idle', 'On Leave'],
+                datasets: [{
+                    data: [{{ $resActive }}, {{ $resIdle }}, {{ $resLeave }}],
+                    backgroundColor: ['#0dcaf0', '#6edff6', '#b6effb'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+
+        // 4. ORDER 
+        new Chart(document.getElementById('chartOrder').getContext('2d'), {
+            type: 'pie', 
+            data: {
+                labels: ['Purchase Order', 'Delivery Order', 'Invoice'],
+                datasets: [{
+                    data: [{{ $orderPo }}, {{ $orderDo }}, {{ $orderInv }}],
+                    backgroundColor: ['#ffc107', '#ffda6a', '#fff3cd'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+
+        // 5. RND 
+        new Chart(document.getElementById('chartRnd').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Research', 'Prototyping', 'Testing'],
+                datasets: [{
+                    data: [{{ $rndResearch }}, {{ $rndProto }}, {{ $rndTesting }}],
+                    backgroundColor: ['#dc3545', '#ea868f', '#f5c2c7'],
+                    borderWidth: 0
+                }]
+            },
+            options: chartOptions
+        });
+    });
+</script>
+
+@endsection

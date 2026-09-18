@@ -5,16 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ProductionOrder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail; // Wajib dipanggil untuk fitur Email
+use Illuminate\Support\Facades\Mail;
 
 class ProduksiController extends Controller
 {
-    // Mengambil role asli dari user yang sedang login dari database teman Anda
     private function getCurrentRole() {
         if (Auth::check()) {
-            return Auth::user()->role; // Mengambil 'super_admin', 'admin', atau 'user'
+            return Auth::user()->role; 
         }
-        return 'user'; // Default jika belum login
+        return 'user'; 
     }
 
     public function index(Request $request)
@@ -36,17 +35,12 @@ class ProduksiController extends Controller
         $wip = ProductionOrder::where('status', 'Proses Produksi Berjalan')->count();
         $selesai = ProductionOrder::where('status', 'Selesai')->count();
 
-        $operators = [
-            (object) ['id' => 1, 'nama_pekerja' => 'Budi Santoso', 'posisi' => 'Operator CNC'],
-            (object) ['id' => 2, 'nama_pekerja' => 'Ahmad Faisal', 'posisi' => 'Welder'],
-            (object) ['id' => 3, 'nama_pekerja' => 'Siti Aminah', 'posisi' => 'Quality Control']
-        ];
-
-        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'operators', 'role'));
+        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'role'));
     }
 
     public function store(Request $request)
     {
+        // Fungsi ini sengaja dibiarkan (opsional) sebagai fallback jika ada input manual
         $role = $this->getCurrentRole();
         
         $request->validate([
@@ -54,12 +48,7 @@ class ProduksiController extends Controller
             'produk' => 'required|string',
             'jumlah_produksi' => 'required|integer|min:1',
             'target_selesai' => 'required|date',
-            'keterangan' => 'nullable|string',
         ]);
-
-        // LOGIKA ROLE SAAT INPUT:
-        // Jika User biasa yang buat, harus tunggu admin. Jika Admin yg buat, langsung siap produksi.
-        $statusAwal = ($role == 'user') ? 'Menunggu Approval Admin' : 'Menunggu Bahan Baku';
 
         ProductionOrder::create([
             'no_po' => $request->no_po,
@@ -67,44 +56,23 @@ class ProduksiController extends Controller
             'jumlah_produksi' => $request->jumlah_produksi,
             'target_selesai' => $request->target_selesai,
             'keterangan' => $request->keterangan,
-            'status' => $statusAwal,
+            'status' => ($role == 'user') ? 'Menunggu Approval Admin' : 'Menunggu Bahan Baku',
         ]);
 
         return redirect()->route('produksi.index')->with('success', 'SPK berhasil dibuat!');
     }
 
-    // --- FITUR ADMIN: APPROVE & REJECT + EMAIL NOTIFICATION ---
+    // --- FITUR ADMIN: APPROVE & REJECT ---
     public function approveSpk($id) {
         $order = ProductionOrder::findOrFail($id);
         $order->update(['status' => 'Menunggu Bahan Baku']);
-
-        // Mengirim Email Notifikasi (Approve)
-        try {
-            Mail::raw("Halo, SPK dengan No. PO: {$order->no_po} (Produk: {$order->produk}) telah DISETUJUI oleh Admin. SPK sekarang masuk ke antrean Menunggu Bahan Baku.", function ($message) use ($order) {
-                // Email tujuan sementara di-hardcode ke user dummy (bisa diubah nanti)
-                $message->to('user@capstone.com')->subject('✅ SPK Disetujui: ' . $order->no_po);
-            });
-        } catch (\Exception $e) {
-            // Pengaman: Jika konfigurasi SMTP di .env belum disetting, abaikan error agar web tidak crash
-        }
-
-        return redirect()->back()->with('success', 'SPK dari User Disetujui. Notifikasi Email telah dikirim (jika SMTP aktif).');
+        return redirect()->back()->with('success', 'PO Disetujui! Silakan plotting Mesin & Operator.');
     }
 
     public function rejectSpk($id) {
         $order = ProductionOrder::findOrFail($id);
         $order->update(['status' => 'Ditolak Admin']);
-
-        // Mengirim Email Notifikasi (Reject)
-        try {
-            Mail::raw("Mohon maaf, SPK dengan No. PO: {$order->no_po} (Produk: {$order->produk}) telah DITOLAK oleh Admin. Silakan hubungi tim Admin untuk informasi lebih lanjut.", function ($message) use ($order) {
-                $message->to('user@capstone.com')->subject('❌ SPK Ditolak: ' . $order->no_po);
-            });
-        } catch (\Exception $e) {
-             // Pengaman error
-        }
-
-        return redirect()->back()->with('warning', 'SPK dari User telah Ditolak. Notifikasi Email telah dikirim.');
+        return redirect()->back()->with('warning', 'Order Produksi telah Ditolak.');
     }
 
     // --- FITUR HAPUS DATA ---
@@ -120,26 +88,29 @@ class ProduksiController extends Controller
         return redirect()->back()->with('success', 'Data SPK telah Dihapus secara permanen oleh Super Admin.');
     }
 
-    // --- FITUR OPERASIONAL (ADMIN) ---
+    // --- FITUR OPERASIONAL (EKSEKUSI RESOURCES) ---
     public function submitMaterialRequest(Request $request, $id) {
         $order = ProductionOrder::findOrFail($id);
-        $isFulfilled = $request->is_material_ready && $request->is_machine_ready;
 
-        if (!$isFulfilled) {
-            $order->update(['status' => 'Ditolak / Bahan Kurang']);
-            return redirect()->back()->with('warning', 'Kelayakan gagal! Inventory/mesin tidak siap.');
-        }
+        // Menangkap pilihan dari Modul Resources
+        $namaMesin = $request->mesin_id ?? 'Mesin Default';
+        $namaOperator = $request->operator_name ?? 'Operator Default';
 
-        $catatanOperator = "Operator Bertugas: " . $request->operator_name;
-        $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanOperator : $catatanOperator;
+        // Mencatat Pilihan ke dalam Keterangan (Logika Dinamis)
+        $catatanPlotting = "⚙️ [EKSEKUSI] Mesin: " . $namaMesin . " | Operator: " . $namaOperator;
+        $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanPlotting : $catatanPlotting;
 
-        $order->update(['status' => 'Proses Produksi Berjalan', 'keterangan' => $keteranganUpdate]);
-        return redirect()->back()->with('success', 'SPK masuk ke proses produksi.');
+        $order->update([
+            'status' => 'Proses Produksi Berjalan', 
+            'keterangan' => $keteranganUpdate
+        ]);
+        
+        return redirect()->back()->with('success', 'SPK sukses masuk antrean produksi dengan Mesin & Operator terpilih!');
     }
 
     public function submitFinalQc(Request $request, $id) {
         $order = ProductionOrder::findOrFail($id);
-        $catatanQC = "Final QC [Good: " . $request->good_qty . " Pcs | Reject: " . $request->reject_qty . " Pcs]. " . $request->catatan_qc;
+        $catatanQC = "✅ Final QC [Good: " . $request->good_qty . " Pcs | Reject: " . $request->reject_qty . " Pcs]. " . $request->catatan_qc;
         $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanQC : $catatanQC;
 
         $order->update(['status' => 'Selesai', 'keterangan' => $keteranganUpdate]);
@@ -157,7 +128,7 @@ class ProduksiController extends Controller
 
     public function resolveTrouble($id) {
         $order = ProductionOrder::findOrFail($id);
-        $catatan = "✅ [RESOLVED] " . now()->format('d M H:i') . " - Produksi dilanjutkan kembali.";
+        $catatan = "🛠️ [RESOLVED] " . now()->format('d M H:i') . " - Produksi dilanjutkan kembali.";
         $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatan : $catatan;
 
         $order->update(['status' => 'Proses Produksi Berjalan', 'keterangan' => $keteranganUpdate]);

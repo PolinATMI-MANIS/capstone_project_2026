@@ -41,7 +41,6 @@
             pointer-events: none;
         }
 
-        /* Glassmorphism Sidebar - Bening & Transparan */
         .sidebar {
             height: 100vh;
             width: 260px;
@@ -75,7 +74,6 @@
             padding: 10px 25px;
         }
 
-        /* Styling Menu Utama dengan Efek Kaca Bening saat di-hover */
         .sidebar a {
             padding: 12px 20px;
             text-decoration: none;
@@ -90,7 +88,6 @@
             border: 1px solid transparent;
         }
 
-        /* Efek Hover Kaca Bening Bersih */
         .sidebar a:hover, .sidebar a.active {
             color: #ff6600;
             background: rgba(255, 255, 255, 0.65);
@@ -106,7 +103,6 @@
             text-align: center;
         }
 
-        /* Styling Sub-menu */
         .sidebar .submenu {
             padding-left: 35px;
             font-size: 0.85rem;
@@ -123,7 +119,6 @@
             transform: translateX(3px);
         }
 
-        /* Rotasi panah dropdown */
         [data-bs-toggle="collapse"] .fa-chevron-down {
             transition: transform 0.3s ease;
         }
@@ -134,50 +129,6 @@
         .main-content {
             margin-left: 260px;
             padding: 40px;
-        }
-
-        /* Sub-Navbar Atas Terang */
-        .sub-navbar {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 6px;
-            border-radius: 12px;
-            display: inline-flex;
-            gap: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-
-        .sub-nav-btn {
-            color: #64748b;
-            text-decoration: none;
-            padding: 8px 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-
-        .sub-nav-btn.active, .sub-nav-btn:hover {
-            background-color: #ff6600;
-            color: #ffffff;
-        }
-
-        /* Tombol Aksi */
-        .btn-machine {
-            background-color: #ff6600;
-            color: #fff;
-            font-weight: 600;
-            border-radius: 8px;
-            padding: 10px 22px;
-            font-size: 0.85rem;
-            border: none;
-            transition: 0.3s;
-            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
-        }
-        .btn-machine:hover {
-            background-color: #e55c00;
-            transform: translateY(-2px);
-            color: #fff;
         }
     </style>
 </head>
@@ -192,7 +143,7 @@
         
         <div class="sidebar-category">Modules</div>
         
-        <a href="/dashboard" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
+        <a href="{{ route('dashboard') }}" class="{{ Request::is('dashboard*') ? 'active' : '' }}">
             <i class="fa-solid fa-chart-line"></i> Dashboard
         </a>
         
@@ -245,11 +196,11 @@
             </div>
         </a>
         
-        <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
-            <i class="fa-solid fa-cart-shopping"></i> Order Here !
+        <a href="{{ Route::has('purchase.hub') ? route('purchase.hub') : '/purchase-delivery' }}" class="{{ Request::is('purchase*') || Request::is('delivery*') || Request::is('purchase-delivery*') ? 'active' : '' }}">
+            <i class="fa-solid fa-cart-shopping"></i> Purchase & Delivery
         </a>
         
-        <a href="/rnd" class="{{ Request::is('rnd*') ? 'active' : '' }}">
+        <a href="{{ Route::has('rnd.index') ? route('rnd.index') : '/rnd' }}" class="{{ Request::is('rnd*') ? 'active' : '' }}">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
