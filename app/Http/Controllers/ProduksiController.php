@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\ProductionOrder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProduksiController extends Controller
 {
@@ -35,12 +37,34 @@ class ProduksiController extends Controller
         $wip = ProductionOrder::where('status', 'Proses Produksi Berjalan')->count();
         $selesai = ProductionOrder::where('status', 'Selesai')->count();
 
-        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'role'));
+        // Mengambil data Operator dan Mesin secara aman dari database resources
+        $operators = collect();
+        $mesins = collect();
+
+        try {
+            if (Schema::hasTable('resources')) {
+                $operators = DB::table('resources')->whereIn('type', ['operator', 'Operator', 'SDM', 'User'])->get();
+                $mesins    = DB::table('resources')->whereIn('type', ['mesin', 'Machine', 'Mesin', 'Alat'])->get();
+
+                // Jika kolom type tidak spesifik, ambil semua resource sebagai pilihan
+                if ($operators->isEmpty() && $mesins->isEmpty()) {
+                    $allResources = DB::table('resources')->get();
+                    $operators = $allResources;
+                    $mesins    = $allResources;
+                }
+            } elseif (Schema::hasTable('operators') && Schema::hasTable('mesins')) {
+                $operators = DB::table('operators')->get();
+                $mesins    = DB::table('mesins')->get();
+            }
+        } catch (\Exception $e) {
+            // Tetap berjalan meskipun tabel resource belum disiapkan
+        }
+
+        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'role', 'operators', 'mesins'));
     }
 
     public function store(Request $request)
     {
-        // Fungsi ini sengaja dibiarkan (opsional) sebagai fallback jika ada input manual
         $role = $this->getCurrentRole();
         
         $request->validate([
@@ -62,11 +86,32 @@ class ProduksiController extends Controller
         return redirect()->route('produksi.index')->with('success', 'SPK berhasil dibuat!');
     }
 
-    // --- FITUR ADMIN: APPROVE & REJECT ---
-    public function approveSpk($id) {
+    // --- FITUR ADMIN: APPROVE DENGAN PEMILIHAN OPERATOR & MESIN ---
+    public function approveSpk(Request $request, $id) {
         $order = ProductionOrder::findOrFail($id);
-        $order->update(['status' => 'Menunggu Bahan Baku']);
-        return redirect()->back()->with('success', 'PO Disetujui! Silakan plotting Mesin & Operator.');
+
+        $namaMesin = $request->mesin ?? $request->mesin_id ?? 'Mesin Default';
+        $namaOperator = $request->operator ?? $request->operator_name ?? 'Operator Default';
+
+        $catatanPlotting = "⚙️ [APPROVED & PLOTTED] Mesin: " . $namaMesin . " | Operator: " . $namaOperator;
+        $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanPlotting : $catatanPlotting;
+
+        $updateData = [
+            'status' => 'Proses Produksi Berjalan',
+            'keterangan' => $keteranganUpdate
+        ];
+
+        // Update kolom operator & mesin jika kolomnya tersedia di tabel database
+        if (Schema::hasColumn('production_orders', 'operator')) {
+            $updateData['operator'] = $namaOperator;
+        }
+        if (Schema::hasColumn('production_orders', 'mesin')) {
+            $updateData['mesin'] = $namaMesin;
+        }
+
+        $order->update($updateData);
+
+        return redirect()->back()->with('success', 'PO Disetujui! Mesin & Operator berhasil di-plotting dan masuk ke proses produksi.');
     }
 
     public function rejectSpk($id) {
@@ -92,11 +137,9 @@ class ProduksiController extends Controller
     public function submitMaterialRequest(Request $request, $id) {
         $order = ProductionOrder::findOrFail($id);
 
-        // Menangkap pilihan dari Modul Resources
         $namaMesin = $request->mesin_id ?? 'Mesin Default';
         $namaOperator = $request->operator_name ?? 'Operator Default';
 
-        // Mencatat Pilihan ke dalam Keterangan (Logika Dinamis)
         $catatanPlotting = "⚙️ [EKSEKUSI] Mesin: " . $namaMesin . " | Operator: " . $namaOperator;
         $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanPlotting : $catatanPlotting;
 
