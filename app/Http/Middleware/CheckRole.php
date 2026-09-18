@@ -15,12 +15,23 @@ class CheckRole
             return redirect('/login');
         }
 
-        // Cek apakah role user sesuai dengan role yang diizinkan
-        if (in_array(Auth::user()->role, $roles)) {
+        $user = Auth::user();
+        $userRoleRaw = $user->role ?? 'user';
+
+        // Normalisasi role user (ubah ke lowercase dan ganti spasi/dash jadi underscore)
+        $userRoleNormalized = strtolower(str_replace([' ', '-'], '_', trim($userRoleRaw)));
+
+        // Normalisasi daftar role yang diizinkan dari parameter rute
+        $allowedRoles = array_map(function($role) {
+            return strtolower(str_replace([' ', '-'], '_', trim($role)));
+        }, $roles);
+
+        // Cek apakah role yang dinormalisasi ada di dalam daftar yang diizinkan
+        if (in_array($userRoleNormalized, $allowedRoles)) {
             return $next($request);
         }
 
-        // Jika role tidak sesuai, tampilkan halaman 403 (Forbidden)
-        abort(403, 'Kamu tidak memiliki akses ke halaman ini.');
+        // Tampilkan 403 beserta info role user saat ini untuk debugging
+        abort(403, "Akses ditolak! Role Anda saat ini adalah: [ {$userRoleRaw} ], sedangkan yang dibutuhkan: [ " . implode(', ', $roles) . " ]");
     }
 }

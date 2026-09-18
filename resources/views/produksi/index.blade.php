@@ -35,11 +35,11 @@
     <div>
         <h3 class="fw-bolder mb-1" style="color: #0f172a; letter-spacing: -0.5px;">Production Directory</h3>
         <p class="text-muted mb-0" style="font-size: 0.9rem;">
-            Hak Akses Saat Ini: <span class="badge bg-dark ms-1 text-uppercase">{{ str_replace('_', ' ', $role) }}</span>
+            Hak Akses Saat Ini: <span class="badge bg-dark ms-1 text-uppercase">{{ str_replace('_', ' ', $role ?? 'guest') }}</span>
         </p>
     </div>
     
-    @if($role == 'admin' || $role == 'user')
+    @if(isset($role) && ($role == 'admin' || $role == 'user'))
     <button class="btn btn-brand-orange px-4 py-2" data-bs-toggle="modal" data-bs-target="#addSpkModal">
         <i class="fa-solid fa-plus me-2"></i> Buat SPK
     </button>
@@ -133,7 +133,7 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group shadow-sm">
-                                    @if($role == 'admin')
+                                    @if(isset($role) && $role == 'admin')
                                         @if($order->status == 'Menunggu Approval Admin')
                                             <form action="{{ route('produksi.approve_spk', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                                 @csrf 
@@ -171,7 +171,7 @@
                                         @endif
                                     @endif
 
-                                    @if($role == 'super_admin' && $order->status == 'Menunggu Dihapus')
+                                    @if(isset($role) && $role == 'super_admin' && $order->status == 'Menunggu Dihapus')
                                         <form action="{{ route('produksi.approve_delete', $order->id) }}" method="POST" class="d-inline m-0 p-0">
                                             @csrf 
                                             <button type="submit" onclick="return confirm('Hapus data ini secara permanen?')" class="btn btn-sm btn-danger fw-semibold border">
@@ -185,13 +185,15 @@
                                     </button>
                                 </div>
 
-                                @if($role == 'admin')
+                                @if(isset($role) && $role == 'admin')
                                     @if($order->status == 'Menunggu Bahan Baku')
                                     <div class="modal fade text-start" id="checkModal{{ $order->id }}" tabindex="-1">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
                                                 <form action="{{ route('produksi.material.request', $order->id) }}" method="POST">
                                                     @csrf 
+                                                    <input type="hidden" name="inventory_id" value="{{ $order->inventory_id }}">
+
                                                     <div class="modal-header border-0">
                                                         <h5 class="modal-title fw-bold">Cek Kelayakan Produksi</h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -199,12 +201,12 @@
                                                     <div class="modal-body">
                                                         <div class="row g-3 mb-4">
                                                             <div class="col-md-6">
-                                                                <label class="form-label small text-muted">Kode Material</label>
-                                                                <input type="text" class="form-control bg-light" name="item_code" required>
+                                                                <label class="form-label small text-muted">Produk / Item</label>
+                                                                <input type="text" class="form-control bg-light" value="{{ $order->produk }}" readonly>
                                                             </div>
                                                             <div class="col-md-6">
                                                                 <label class="form-label small text-muted">Qty Kebutuhan</label>
-                                                                <input type="number" class="form-control bg-light" name="qty_required" required value="{{ $order->jumlah_produksi }}">
+                                                                <input type="number" class="form-control bg-light" name="qty_required" required value="{{ $order->jumlah_produksi }}" readonly>
                                                             </div>
                                                         </div>
                                                         <h6 class="fw-bold mb-3 fs-6">Kesiapan 4M & Plotting Pekerja</h6>
@@ -226,9 +228,11 @@
                                                             <label class="form-label small mb-1 text-primary fw-bold">3. Pilih Operator</label>
                                                             <select name="operator_name" class="form-select border-primary" required>
                                                                 <option value="">-- Pilih Operator Bertugas --</option>
-                                                                @foreach($operators as $op)
-                                                                    <option value="{{ $op->nama_pekerja }} ({{ $op->posisi }})">{{ $op->nama_pekerja }} - {{ $op->posisi }}</option>
-                                                                @endforeach
+                                                                @if(isset($operators))
+                                                                    @foreach($operators as $op)
+                                                                        <option value="{{ $op->nama_pekerja }} ({{ $op->posisi }})">{{ $op->nama_pekerja }} - {{ $op->posisi }}</option>
+                                                                    @endforeach
+                                                                @endif
                                                             </select>
                                                         </div>
                                                     </div>
@@ -345,7 +349,7 @@
     {{ $orders->appends(request()->query())->links('pagination::bootstrap-5') }}
 </div>
 
-@if($role == 'admin' || $role == 'user')
+@if(isset($role) && ($role == 'admin' || $role == 'user'))
 <div class="modal fade" id="addSpkModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -360,10 +364,17 @@
                         <label class="form-label fw-semibold small text-muted">No. Production Order</label>
                         <input type="text" class="form-control bg-light" name="no_po" required>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-muted">Nama Produk</label>
-                        <input type="text" class="form-control bg-light" name="produk" required>
+                        <label class="form-label fw-semibold small text-muted">Pilih Item / Produk (Inventory)</label>
+                        <select name="inventory_id" class="form-select bg-light" required>
+                            <option value="">-- Pilih Barang dari Inventory --</option>
+                            @foreach($inventories as $inv)
+                                <option value="{{ $inv->id }}">{{ $inv->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small text-muted">Target Qty (Pcs)</label>

@@ -19,4 +19,9 @@ class WaitingResource extends Model
         'keterangan',
         'target_selesai',
     ];
+    public function itemRequests()
+{
+    return $this->hasMany(ItemRequest::class, 'resource_id');
+}
+
 }

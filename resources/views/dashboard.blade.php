@@ -31,15 +31,18 @@
                 </a>
             </li>
             <li>
-                <a class="dropdown-item d-flex align-items-center py-2 rounded-2" href="/logout">
+                <a class="dropdown-item d-flex align-items-center py-2 rounded-2" href="{{ route('login') }}">
                     <i class="fa-solid fa-users-between-lines me-2 text-muted"></i> Login Akun Lain
                 </a>
             </li>
             <li><hr class="dropdown-divider my-1"></li>
             <li>
-                <a class="dropdown-item d-flex align-items-center py-2 rounded-2 text-danger fw-semibold" href="/logout">
-                    <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
-                </a>
+                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="dropdown-item d-flex align-items-center py-2 rounded-2 text-danger fw-semibold w-100 bg-transparent border-0">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
+                    </button>
+                </form>
             </li>
         </ul>
     </div>
@@ -123,7 +126,7 @@
     </div>
 </div>
 
-<!-- 2. SECTION TABEL APPROVAL -->
+<!-- 2. SECTION TABEL APPROVAL (Berdasarkan Role) -->
 <div class="row mb-4">
     <div class="col-12">
         @php
@@ -131,6 +134,7 @@
         @endphp
 
         @if($role === 'super_admin')
+            <!-- TABEL SUPER ADMIN: Approval Hapus Data -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -153,22 +157,28 @@
                             <tbody>
                                 @forelse($pendingApprovals ?? [] as $item)
                                     <tr>
-                                        <td class="ps-3 fw-bold small">{{ $item->pemohon ?? '-' }}</td>
-                                        <td><span class="badge bg-primary">{{ $item->modul ?? '-' }}</span></td>
-                                        <td class="small">{{ $item->data ?? '-' }}</td>
-                                        <td class="small text-muted">{{ $item->alasan ?? '-' }}</td>
+                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'user_name') ?? data_get($item, 'pemohon', '-') }}</td>
+                                        <td><span class="badge bg-primary">{{ data_get($item, 'module') ?? data_get($item, 'modul', '-') }}</span></td>
+                                        <td class="small">{{ data_get($item, 'item_name') ?? data_get($item, 'data', '-') }}</td>
+                                        <td class="small text-muted">{{ data_get($item, 'reason') ?? data_get($item, 'alasan', '-') }}</td>
                                         <td class="text-end pe-3">
                                             <div class="d-inline-flex gap-1 justify-content-end">
-                                                @if(isset($item->url_approve))
-                                                    <form action="{{ $item->url_approve }}" method="POST" class="m-0 p-0">
+                                                @php
+                                                    $approveUrl = data_get($item, 'url_approve') ?? data_get($item, 'url');
+                                                    $rejectUrl = data_get($item, 'url_reject');
+                                                @endphp
+                                                
+                                                @if($approveUrl && $approveUrl !== '#')
+                                                    <form action="{{ $approveUrl }}" method="POST" class="m-0 p-0">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-success rounded-2" onclick="return confirm('Setujui permintaan ini?')">
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-2" onclick="return confirm('Setujui penghapusan data secara permanen?')">
                                                             <i class="fa-solid fa-check me-1"></i> Approve
                                                         </button>
                                                     </form>
                                                 @endif
-                                                @if(isset($item->url_reject))
-                                                    <form action="{{ $item->url_reject }}" method="POST" class="m-0 p-0">
+                                                
+                                                @if($rejectUrl && $rejectUrl !== '#')
+                                                    <form action="{{ $rejectUrl }}" method="POST" class="m-0 p-0">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-2" onclick="return confirm('Tolak permintaan ini?')">
                                                             <i class="fa-solid fa-xmark me-1"></i> Tolak
@@ -193,6 +203,7 @@
             </div>
             
         @elseif($role === 'admin')
+            <!-- TABEL ADMIN: Approval SPK dari User -->
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
                     <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
@@ -215,22 +226,30 @@
                             <tbody>
                                 @forelse($pendingApprovals ?? [] as $item)
                                     <tr>
-                                        <td class="ps-3 fw-bold small">{{ $item->pemohon ?? '-' }}</td>
-                                        <td><span class="badge bg-primary">{{ $item->modul ?? '-' }}</span></td>
-                                        <td class="small fw-bold">{{ $item->data ?? '-' }}</td>
-                                        <td class="small text-muted">{{ $item->alasan ?? '-' }}</td>
+                                        <td class="ps-3 fw-bold small">{{ data_get($item, 'user_name') ?? data_get($item, 'pemohon', '-') }}</td>
+                                        <td><span class="badge bg-secondary">{{ data_get($item, 'category') ?? data_get($item, 'modul', '-') }}</span></td>
+                                        <td class="small">{{ data_get($item, 'description') ?? data_get($item, 'data', '-') }}</td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark">{{ data_get($item, 'status', 'Pending') }}</span>
+                                        </td>
                                         <td class="text-end pe-3">
                                             <div class="d-inline-flex gap-1 justify-content-end">
-                                                @if(isset($item->url_approve))
-                                                    <form action="{{ $item->url_approve }}" method="POST" class="m-0 p-0">
+                                                @php
+                                                    $approveUrl = data_get($item, 'url_approve') ?? data_get($item, 'url');
+                                                    $rejectUrl = data_get($item, 'url_reject');
+                                                @endphp
+
+                                                @if($approveUrl && $approveUrl !== '#')
+                                                    <form action="{{ $approveUrl }}" method="POST" class="m-0 p-0">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-success rounded-2">
                                                             <i class="fa-solid fa-check me-1"></i> Approve
                                                         </button>
                                                     </form>
                                                 @endif
-                                                @if(isset($item->url_reject))
-                                                    <form action="{{ $item->url_reject }}" method="POST" class="m-0 p-0">
+
+                                                @if($rejectUrl && $rejectUrl !== '#')
+                                                    <form action="{{ $rejectUrl }}" method="POST" class="m-0 p-0">
                                                         @csrf
                                                         <button type="submit" class="btn btn-sm btn-outline-danger rounded-2">
                                                             <i class="fa-solid fa-xmark me-1"></i> Tolak
@@ -460,6 +479,7 @@
     .card-hover:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08)!important; }
 </style>
 
+@push('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const chartOptions = {
@@ -468,65 +488,82 @@
             plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
         };
 
+        // 1. CHART INVENTORY 
         new Chart(document.getElementById('chartInventory').getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['Raw Material', 'Work In Process', 'Finished Goods'],
+                labels: ['Raw Material', 'Work In Process', 'Finished Goods', 'MRO / Sparepart', 'Packing Material'],
                 datasets: [{
-                    data: [{{ $invRaw ?? 0 }}, {{ $invWip ?? 0 }}, {{ $invFg ?? 0 }}],
-                    backgroundColor: ['#0d6efd', '#6ea8fe', '#b6d4fe'],
+                    data: [
+                        {{ $invRaw ?? 0 }}, 
+                        {{ $invWip ?? 0 }}, 
+                        {{ $invFg ?? 0 }}, 
+                        {{ $invMro ?? 0 }}, 
+                        {{ $invPacking ?? 0 }}
+                    ],
+                    backgroundColor: [
+                        '#0d6efd', // Raw Material
+                        '#6ea8fe', // Work In Process
+                        '#b6d4fe', // Finished Goods
+                        '#ff6600', // MRO / Sparepart
+                        '#ffc107'  // Packing Material
+                    ],
                     borderWidth: 0
                 }]
             },
             options: chartOptions
         });
 
+        // 2. CHART PRODUCTION 
         new Chart(document.getElementById('chartProduction').getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['Pending / Trouble', 'Running', 'Selesai'],
+                labels: ['Pending', 'Approved', 'Rejected'],
                 datasets: [{
-                    data: [{{ $prodPending ?? 0 }}, {{ $prodRunning ?? 0 }}, {{ $prodDone ?? 0 }}], 
-                    backgroundColor: ['#ffc107', '#198754', '#75b798'],
+                    data: [{{ $prodPending ?? 0 }}, {{ $prodApproved ?? 0 }}, {{ $prodRejected ?? 0 }}],
+                    backgroundColor: ['#ffc107', '#198754', '#dc3545'],
                     borderWidth: 0
                 }]
             },
             options: chartOptions
         });
 
+        // 3. CHART RESOURCES 
         new Chart(document.getElementById('chartResources').getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: ['Active', 'Idle', 'On Leave'],
+                labels: ['Supplier Terdaftar'],
                 datasets: [{
-                    data: [{{ $resActive ?? 0 }}, {{ $resIdle ?? 0 }}, {{ $resLeave ?? 0 }}],
-                    backgroundColor: ['#0dcaf0', '#6edff6', '#b6effb'],
+                    data: [{{ $totalResources ?? 0 }}],
+                    backgroundColor: ['#0dcaf0'],
                     borderWidth: 0
                 }]
             },
             options: chartOptions
         });
 
+        // 4. CHART ORDER 
         new Chart(document.getElementById('chartOrder').getContext('2d'), {
-            type: 'pie', 
+            type: 'doughnut',
             data: {
-                labels: ['Purchase Order', 'Delivery Order', 'Invoice'],
+                labels: ['Purchase Order'],
                 datasets: [{
-                    data: [{{ $orderPo ?? 0 }}, {{ $orderDo ?? 0 }}, {{ $orderInv ?? 0 }}],
-                    backgroundColor: ['#ffc107', '#ffda6a', '#fff3cd'],
+                    data: [{{ $totalOrders ?? 0 }}],
+                    backgroundColor: ['#ff6600'],
                     borderWidth: 0
                 }]
             },
             options: chartOptions
         });
 
+        // 5. CHART RND 
         new Chart(document.getElementById('chartRnd').getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: ['Research', 'Prototyping', 'Testing'],
+                labels: ['Research', 'Development', 'Testing'],
                 datasets: [{
-                    data: [{{ $rndResearch ?? 0 }}, {{ $rndProto ?? 0 }}, {{ $rndTesting ?? 0 }}],
-                    backgroundColor: ['#dc3545', '#ea868f', '#f5c2c7'],
+                    data: [0, 0, {{ $totalRnd ?? 0 }}],
+                    backgroundColor: ['#dc3545', '#fd7e14', '#20c997'],
                     borderWidth: 0
                 }]
             },
@@ -534,4 +571,6 @@
         });
     });
 </script>
+@endpush
+
 @endsection

@@ -14,7 +14,14 @@ return new class extends Migration
         Schema::create('production_orders', function (Blueprint $table) {
             $table->id();
             $table->string('no_po')->unique();
-            $table->string('produk');
+            
+            // Relasi ke tabel items (sebelumnya inventories)
+            $table->foreignId('inventory_id')
+                  ->nullable()
+                  ->constrained('items')
+                  ->onDelete('cascade'); 
+
+            $table->string('produk'); // Nama produk (diisi otomatis dari nama barang di inventory)
             $table->integer('jumlah_produksi');
             $table->date('target_selesai');
             $table->text('keterangan')->nullable();
