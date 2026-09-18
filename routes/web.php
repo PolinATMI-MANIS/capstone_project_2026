@@ -2,9 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use App\Models\User;
 
-// --- Controllers (Gabungan Semua Modul) ---
+// ==========================================
+// IMPORT SEMUA CONTROLLER & MODEL DI SINI
+// ==========================================
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProduksiController;
@@ -18,7 +22,6 @@ use App\Http\Controllers\RnDfeatureController;
 use App\Http\Controllers\InventoryProduksiController;
 use App\Http\Controllers\InventoryPoController;
 
-// --- Models ---
 use App\Models\ApprovalRequest;
 use App\Models\ManPower;
 use App\Models\MachinePower;
@@ -29,15 +32,24 @@ use App\Models\MachinePower;
 |--------------------------------------------------------------------------
 */
 
-// Redirect Root ke Dashboard
+// ==========================================
+// RUTE HELPER & PENGUJIAN
+// ==========================================
+Route::get('/masuk-paksa', function () {
+    $user = User::first();
+    if ($user) {
+        Auth::login($user);
+        return redirect('/dashboard'); 
+    }
+    return 'Data users KOSONG!';
+});
+
+Route::get('/login-as/{role}', [InventoryProduksiController::class, 'simulasiLogin'])->name('simulasi.login');
+
+// Redirect Halaman Utama
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
-
-// ==========================================
-// RUTE SIMULASI LOGIN UNTUK PENGUJIAN ROLE
-// ==========================================
-Route::get('/login-as/{role}', [InventoryProduksiController::class, 'simulasiLogin'])->name('simulasi.login');
 
 
 // ==========================================
@@ -47,81 +59,22 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
         return view('login');
     })->name('login');
-
+    
     Route::post('/proses-login', [LoginController::class, 'authenticate']);
 });
 
 
 // ==========================================
-// RUTE PUBLIK / LUAR AUTH 
-// (Bisa dipindah ke dalam Auth jika memang harus login)
-// ==========================================
-
-// Rute untuk Sistem SPK & QC (Produksi Utama)
-Route::prefix('produksi')->name('produksi.')->group(function () {
-    Route::get('/', [ProduksiController::class, 'index'])->name('index');
-    Route::post('/store', [ProduksiController::class, 'store'])->name('store');
-    Route::post('/{id}/material-request', [ProduksiController::class, 'submitMaterialRequest'])->name('material.request');
-    Route::post('/{id}/final-qc', [ProduksiController::class, 'submitFinalQc'])->name('final.qc');
-    Route::post('/{id}/trouble', [ProduksiController::class, 'reportTrouble'])->name('trouble');
-    Route::post('/{id}/resolve', [ProduksiController::class, 'resolveTrouble'])->name('resolve');
-    Route::post('/{id}/approve-spk', [ProduksiController::class, 'approveSpk'])->name('approve_spk');
-    Route::post('/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'])->name('reject_spk');
-    Route::post('/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('request_delete');
-    Route::post('/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('approve_delete');
-});
-
-// Rute Man Power
-Route::prefix('man-power')->name('man-power.')->group(function () {
-    Route::get('/', [ManPowerController::class, 'index'])->name('index');
-    Route::get('/create', [ManPowerController::class, 'create'])->name('create');
-    Route::post('/', [ManPowerController::class, 'store'])->name('store');
-    Route::patch('/{id}/update-status', [ManPowerController::class, 'updateStatus']);
-    Route::get('/{manPower}/edit', [ManPowerController::class, 'edit'])->name('edit');
-    Route::put('/{manPower}', [ManPowerController::class, 'update'])->name('update');
-    Route::patch('/{manPower}', [ManPowerController::class, 'update']);
-    Route::post('/{manPower}/update-process', [ManPowerController::class, 'update'])->name('update-process');
-    Route::delete('/{manPower}', [ManPowerController::class, 'destroy'])->name('destroy');
-});
-
-// Rute Machine Power
-Route::prefix('machine-power')->name('machine-power.')->group(function () {
-    Route::get('/', [MachinePowerController::class, 'index'])->name('index');
-    Route::get('/create', [MachinePowerController::class, 'create'])->name('create');
-    Route::post('/', [MachinePowerController::class, 'store'])->name('store');
-    Route::patch('/{id}/update-status', [MachinePowerController::class, 'updateStatus'])->name('update-status');
-    Route::get('/{machinePower}/edit', [MachinePowerController::class, 'edit'])->name('edit');
-    Route::put('/{machinePower}', [MachinePowerController::class, 'update'])->name('update');
-    Route::patch('/{machinePower}', [MachinePowerController::class, 'update']);
-    Route::delete('/{machinePower}', [MachinePowerController::class, 'destroy'])->name('destroy');
-});
-
-// Rute Waiting for Resources (Public Part)
-Route::get('/waiting-for-resources', [WaitingResourceController::class, 'index'])->name('waiting-resources.index');
-Route::post('/api/waiting-resources/store', [WaitingResourceController::class, 'apiStore'])->name('waiting-resources.api-store');
-
-// Route Modul RnD
-Route::prefix('rnd')->name('rnd.')->group(function () {
-    Route::get('/', [RnDfeatureController::class, 'index'])->name('index');
-    Route::get('/create', [RnDfeatureController::class, 'create'])->name('create');
-    Route::post('/store', [RnDfeatureController::class, 'store'])->name('store');
-    Route::get('/{id}', [RnDfeatureController::class, 'show'])->name('show');
-    Route::patch('/{id}/status', [RnDfeatureController::class, 'updateStatus'])->name('updateStatus');
-    Route::delete('/{id}', [RnDfeatureController::class, 'destroy'])->name('destroy');
-});
-
-
-// ==========================================
-// RUTE WAJIB LOGIN (SEMUA ROLE)
+// RUTE WAJIB LOGIN (SEMUA ROLE & MODUL)
 // ==========================================
 Route::middleware(['auth'])->group(function () {
 
-    // --- Logout & Dashboard ---
+    // --- Auth, Dashboard, & Approval Utama ---
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/approval/{id}/action', [DashboardController::class, 'handleApproval'])->name('approval.action');
 
-    // --- Eksekusi Approve / Reject (Dashboard Logika) ---
+    // Eksekusi Approve / Reject Khusus (Dashboard Logika)
     Route::match(['get', 'post'], '/approval-request/{id}/process', function (Request $request, $id) {
         $approval = ApprovalRequest::findOrFail($id);
         $action = $request->input('action'); 
@@ -146,14 +99,89 @@ Route::middleware(['auth'])->group(function () {
         }
     })->name('approval.process');
 
-    // ==============================================================
-    // GROUP INVENTORY (Modul Temanmu)
-    // ==============================================================
+
+    // ==========================================
+    // MODUL PRODUKSI (SPK & QC)
+    // ==========================================
+    Route::prefix('produksi')->name('produksi.')->group(function () {
+        Route::get('/', [ProduksiController::class, 'index'])->name('index');
+        Route::post('/store', [ProduksiController::class, 'store'])->name('store');
+        Route::post('/{id}/material-request', [ProduksiController::class, 'submitMaterialRequest'])->name('material.request');
+        Route::post('/{id}/final-qc', [ProduksiController::class, 'submitFinalQc'])->name('final.qc');
+        Route::post('/{id}/trouble', [ProduksiController::class, 'reportTrouble'])->name('trouble');
+        Route::post('/{id}/resolve', [ProduksiController::class, 'resolveTrouble'])->name('resolve');
+        
+        // Approval Admin & Super Admin
+        Route::post('/{id}/approve-spk', [ProduksiController::class, 'approveSpk'])->name('approve_spk');
+        Route::post('/{id}/reject-spk', [ProduksiController::class, 'rejectSpk'])->name('reject_spk');
+        Route::post('/{id}/request-delete', [ProduksiController::class, 'requestDelete'])->name('request_delete');
+        Route::post('/{id}/approve-delete', [ProduksiController::class, 'approveDelete'])->name('approve_delete');
+    });
+
+
+    // ==========================================
+    // MODUL RESOURCES (MAN POWER & MACHINE)
+    // ==========================================
+    Route::resource('man-power', ManPowerController::class)->except(['show']);
+    Route::patch('/man-power/{id}/update-status', [ManPowerController::class, 'updateStatus']);
+    Route::post('/man-power/{manPower}/update-process', [ManPowerController::class, 'update'])->name('man-power.update-process');
+
+    Route::resource('machine-power', MachinePowerController::class)->except(['show']);
+    Route::patch('/machine-power/{id}/update-status', [MachinePowerController::class, 'updateStatus'])->name('machine-power.update-status');
+
+    // Waiting for Resources
+    Route::get('/waiting-for-resources', [WaitingResourceController::class, 'index'])->name('waiting-resources.index');
+    Route::post('/api/waiting-resources/store', [WaitingResourceController::class, 'apiStore'])->name('waiting-resources.api-store');
+    Route::post('/waiting-resources/update-status/{id}', [WaitingResourceController::class, 'updateStatus'])->name('waiting-resources.update');
+    Route::delete('/waiting-resources/{id}', [WaitingResourceController::class, 'destroy'])->name('waiting-resources.destroy');
+
+
+    // ==========================================
+    // MODUL PURCHASE & DELIVERY ORDER
+    // ==========================================
+    Route::get('/purchase-delivery', [PurchaseController::class, 'hub'])->name('purchase.hub');
+    
+    Route::prefix('purchase')->name('purchase.')->group(function () {
+        Route::get('/', [PurchaseController::class, 'index'])->name('index');
+        Route::post('/store', [PurchaseController::class, 'store']);
+        Route::get('/{id}', [PurchaseController::class, 'show']);
+        Route::put('/{id}', [PurchaseController::class, 'update']);
+        Route::patch('/{id}/approval', [PurchaseController::class, 'approval']);
+        Route::post('/{id}/request-delete', [PurchaseController::class, 'requestDelete'])->name('requestDelete');
+        Route::delete('/{id}', [PurchaseController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('delivery')->name('delivery.')->group(function () {
+        Route::get('/', [DeliveryOrderController::class, 'index'])->name('index');
+        Route::post('/store', [DeliveryOrderController::class, 'store']);
+        Route::get('/{id}', [DeliveryOrderController::class, 'show']);
+        Route::put('/{id}/confirm', [DeliveryOrderController::class, 'confirmDelivery']);
+        Route::patch('/{id}/approval', [DeliveryOrderController::class, 'approval']);
+        Route::delete('/{id}', [DeliveryOrderController::class, 'destroy']);
+    });
+
+
+    // ==========================================
+    // MODUL RnD
+    // ==========================================
+    Route::prefix('rnd')->name('rnd.')->group(function () {
+        Route::get('/', [RnDfeatureController::class, 'index'])->name('index');
+        Route::get('/create', [RnDfeatureController::class, 'create'])->name('create');
+        Route::post('/store', [RnDfeatureController::class, 'store'])->name('store');
+        Route::get('/{id}', [RnDfeatureController::class, 'show'])->name('show');
+        Route::patch('/{id}/status', [RnDfeatureController::class, 'updateStatus'])->name('updateStatus');
+        Route::delete('/{id}', [RnDfeatureController::class, 'destroy'])->name('destroy');
+    });
+
+
+    // ==========================================
+    // MODUL INVENTORY
+    // ==========================================
     Route::prefix('inventory')->name('inventory.')->group(function () {
 
         // 1. INVENTORY PRODUKSI
         Route::prefix('produksi')->name('produksi.')->group(function () {
-            // Read / Lihat Data
+            // Read / Lihat Data & Ekspor Laporan
             Route::get('/', [InventoryProduksiController::class, 'index'])->name('index');
             Route::get('/laporan', [InventoryProduksiController::class, 'laporan'])->name('laporan');
             Route::get('/laporan/pdf', [InventoryProduksiController::class, 'exportPdf'])->name('laporan.pdf');
@@ -223,36 +251,10 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // ==============================================================
-    // GROUP PURCHASE & DELIVERY (Modul Tim Lain yg Direstore)
-    // ==============================================================
-    Route::get('/purchase-delivery', [PurchaseController::class, 'hub'])->name('purchase.hub');
-    
-    Route::prefix('purchase')->name('purchase.')->group(function () {
-        Route::get('/', [PurchaseController::class, 'index'])->name('index');
-        Route::get('/{id}', [PurchaseController::class, 'show']);
-        Route::post('/store', [PurchaseController::class, 'store']);
-        Route::put('/{id}', [PurchaseController::class, 'update']);
-        Route::patch('/{id}/approval', [PurchaseController::class, 'approval']);
-        Route::post('/{id}/request-delete', [PurchaseController::class, 'requestDelete'])->name('requestDelete');
-        Route::delete('/{id}', [PurchaseController::class, 'destroy'])->name('destroy');
-    });
-
-    Route::prefix('delivery')->name('delivery.')->group(function () {
-        Route::get('/', [DeliveryOrderController::class, 'index'])->name('index');
-        Route::get('/{id}', [DeliveryOrderController::class, 'show']);
-        Route::post('/store', [DeliveryOrderController::class, 'store']);
-        Route::put('/{id}/confirm', [DeliveryOrderController::class, 'confirmDelivery']);
-        Route::patch('/{id}/approval', [DeliveryOrderController::class, 'approval']);
-        Route::delete('/{id}', [DeliveryOrderController::class, 'destroy']);
-    });
 
     // ==============================================================
-    // LAIN-LAIN (Waiting Resources Update, Reports, Utilities)
+    // LAIN-LAIN (Reports & Utilities)
     // ==============================================================
-    Route::post('/waiting-resources/update-status/{id}', [WaitingResourceController::class, 'updateStatus'])->name('waiting-resources.update');
-    Route::delete('/waiting-resources/{id}', [WaitingResourceController::class, 'destroy'])->name('waiting-resources.destroy');
-
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/resources', function () { return "Halaman Resources (Dalam Pengembangan)"; });
 

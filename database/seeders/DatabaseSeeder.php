@@ -10,19 +10,34 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // 1. Akun Super Admin
         User::updateOrCreate(
             ['email' => 'superadmin@capstone.com'],
-            ['name' => 'Super Admin Capstone', 'password' => Hash::make('password'), 'role' => 'super_admin']
+            [
+                'name'     => 'Super Admin Capstone', 
+                'password' => Hash::make('password'), 
+                'role'     => 'super_admin'
+            ]
         );
 
+        // 2. Akun Admin Production / R&D
         User::updateOrCreate(
             ['email' => 'admin@capstone.com'],
-            ['name' => 'Admin Production', 'password' => Hash::make('password'), 'role' => 'admin']
+            [
+                'name'     => 'Admin Production', 
+                'password' => Hash::make('password'), 
+                'role'     => 'admin'
+            ]
         );
 
+        // 3. Akun User Biasa / Operator
         User::updateOrCreate(
             ['email' => 'user@capstone.com'],
-            ['name' => 'Operator User', 'password' => Hash::make('password'), 'role' => 'user']
+            [
+                'name'     => 'Operator User', 
+                'password' => Hash::make('password'), 
+                'role'     => 'user'
+            ]
         );
     }
 }

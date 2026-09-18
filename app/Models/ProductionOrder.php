@@ -13,6 +13,23 @@ class ProductionOrder extends Model
 
     protected $guarded = ['id'];
 
+    // Casting tipe data otomatis
+    protected $casts = [
+        'jumlah_produksi' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // Accessor untuk menghitung Target per Jam (TH) langsung dari model
+    public function getTargetPerJamAttribute()
+    {
+        return ceil($this->jumlah_produksi / 8);
+    }
+
+    // ==========================================
+    // RELASI DATABASE
+    // ==========================================
+
     public function inventory()
     {
         return $this->belongsTo(Inventory::class, 'inventory_id');
@@ -31,5 +48,17 @@ class ProductionOrder extends Model
     public function itemRequests()
     {
         return $this->hasMany(ItemRequest::class, 'production_order_id');
+    }
+
+    // Relasi ke Model Mesin (jika menggunakan tabel mesin dari modul resources)
+    public function mesin()
+    {
+        return $this->belongsTo(Mesin::class, 'mesin_id');
+    }
+
+    // Relasi ke Model User / Operator (jika relasi menggunakan ID user/manpower)
+    public function operator()
+    {
+        return $this->belongsTo(User::class, 'operator_id');
     }
 }

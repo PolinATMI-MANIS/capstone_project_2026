@@ -38,7 +38,7 @@ class DashboardController extends Controller
 
         $pendingApprovals = [];
 
-        if ($role == 'super_admin') {
+        if ($role == 'super_admin' || $role == 'superadmin') {
             if ($hasProductionOrder) {
                 $reqHapusProduksi = ProductionOrder::where('status', 'Menunggu Dihapus')->get();
                 foreach ($reqHapusProduksi as $req) {
@@ -64,9 +64,9 @@ class DashboardController extends Controller
                         'modul'       => $req->target_type,
                         'data'        => $req->target_name,
                         'alasan'      => 'Permintaan Hapus ' . $req->target_type,
-                        'url'         => route('approval.process', $req->id) . '?action=approve',
-                        'url_approve' => route('approval.process', $req->id) . '?action=approve',
-                        'url_reject'  => route('approval.process', $req->id) . '?action=reject'
+                        'url'         => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=approve' : '#',
+                        'url_approve' => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=approve' : '#',
+                        'url_reject'  => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=reject' : '#'
                     ];
                 }
             }
@@ -89,8 +89,8 @@ class DashboardController extends Controller
 
             if ($hasApprovalReq) {
                 $reqResourceUser = ApprovalRequest::whereIn('action_type', ['create', 'update'])
-                                                  ->whereIn('target_type', ['ManPower', 'MachinePower'])
-                                                  ->get();
+                                                    ->whereIn('target_type', ['ManPower', 'MachinePower'])
+                                                    ->get();
                 foreach ($reqResourceUser as $req) {
                     $pendingApprovals[] = (object)[
                         'id'          => $req->id,
@@ -98,9 +98,9 @@ class DashboardController extends Controller
                         'modul'       => $req->target_type,
                         'data'        => $req->target_name,
                         'alasan'      => 'Pengajuan ' . ucfirst($req->action_type) . ' ' . $req->target_type,
-                        'url'         => route('approval.process', $req->id) . '?action=approve',
-                        'url_approve' => route('approval.process', $req->id) . '?action=approve',
-                        'url_reject'  => route('approval.process', $req->id) . '?action=reject'
+                        'url'         => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=approve' : '#',
+                        'url_approve' => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=approve' : '#',
+                        'url_reject'  => Route::has('approval.process') ? route('approval.process', $req->id) . '?action=reject' : '#'
                     ];
                 }
             }

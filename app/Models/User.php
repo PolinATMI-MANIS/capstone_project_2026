@@ -28,6 +28,7 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    // --- HELPER METHOD ROLE ---
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin' || $this->role === 'superadmin';

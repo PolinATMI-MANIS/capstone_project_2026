@@ -8,13 +8,17 @@ use App\Models\Item;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 class ProduksiController extends Controller
 {
     private function getCurrentRole() 
     {
-        return Auth::check() ? Auth::user()->role : 'user';
+        if (Auth::check()) {
+            return Auth::user()->role; 
+        }
+        return 'user'; 
     }
 
     public function index(Request $request)
@@ -38,13 +42,38 @@ class ProduksiController extends Controller
 
         $inventories = Item::orderBy('name', 'asc')->get();
 
-        $operators = [
-            (object) ['id' => 1, 'nama_pekerja' => 'Budi Santoso', 'posisi' => 'Operator CNC'],
-            (object) ['id' => 2, 'nama_pekerja' => 'Ahmad Faisal', 'posisi' => 'Welder'],
-            (object) ['id' => 3, 'nama_pekerja' => 'Siti Aminah', 'posisi' => 'Quality Control']
-        ];
+        // Mengambil data Operator dan Mesin secara aman dari database resources atau fallback ke data statis
+        $operators = collect();
+        $mesins = collect();
 
-        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'operators', 'role', 'inventories'));
+        try {
+            if (Schema::hasTable('resources')) {
+                $operators = DB::table('resources')->whereIn('type', ['operator', 'Operator', 'SDM', 'User'])->get();
+                $mesins    = DB::table('resources')->whereIn('type', ['mesin', 'Machine', 'Mesin', 'Alat'])->get();
+
+                if ($operators->isEmpty() && $mesins->isEmpty()) {
+                    $allResources = DB::table('resources')->get();
+                    $operators = $allResources;
+                    $mesins    = $allResources;
+                }
+            } elseif (Schema::hasTable('operators') && Schema::hasTable('mesins')) {
+                $operators = DB::table('operators')->get();
+                $mesins    = DB::table('mesins')->get();
+            }
+        } catch (\Exception $e) {
+            // Fallback jika tabel resources belum ada
+        }
+
+        // Fallback operator default jika database kosong
+        if ($operators->isEmpty()) {
+            $operators = collect([
+                (object) ['id' => 1, 'nama_pekerja' => 'Budi Santoso', 'posisi' => 'Operator CNC'],
+                (object) ['id' => 2, 'nama_pekerja' => 'Ahmad Faisal', 'posisi' => 'Welder'],
+                (object) ['id' => 3, 'nama_pekerja' => 'Siti Aminah', 'posisi' => 'Quality Control']
+            ]);
+        }
+
+        return view('produksi.index', compact('orders', 'totalSpk', 'wip', 'selesai', 'operators', 'mesins', 'role', 'inventories'));
     }
 
     public function store(Request $request)
@@ -56,7 +85,6 @@ class ProduksiController extends Controller
             'inventory_id' => 'required|exists:items,id',
             'jumlah_produksi' => 'required|integer|min:1',
             'target_selesai' => 'required|date',
-            'keterangan' => 'nullable|string',
         ]);
 
         $inventory = Item::findOrFail($request->inventory_id);
@@ -75,10 +103,29 @@ class ProduksiController extends Controller
         return redirect()->route('produksi.index')->with('success', 'SPK berhasil dibuat dan terhubung ke Inventory!');
     }
 
-    public function approveSpk($id) 
+    public function approveSpk(Request $request, $id) 
     {
         $order = ProductionOrder::findOrFail($id);
-        $order->update(['status' => 'Menunggu Bahan Baku']);
+
+        $namaMesin = $request->mesin ?? $request->mesin_id ?? 'Mesin Default';
+        $namaOperator = $request->operator ?? $request->operator_name ?? 'Operator Default';
+
+        $catatanPlotting = "⚙️ [APPROVED & PLOTTED] Mesin: " . $namaMesin . " | Operator: " . $namaOperator;
+        $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanPlotting : $catatanPlotting;
+
+        $updateData = [
+            'status' => 'Menunggu Bahan Baku',
+            'keterangan' => $keteranganUpdate
+        ];
+
+        if (Schema::hasColumn('production_orders', 'operator')) {
+            $updateData['operator'] = $namaOperator;
+        }
+        if (Schema::hasColumn('production_orders', 'mesin')) {
+            $updateData['mesin'] = $namaMesin;
+        }
+
+        $order->update($updateData);
 
         try {
             Mail::raw("Halo, SPK dengan No. PO: {$order->no_po} (Produk: {$order->produk}) telah DISETUJUI oleh Admin. SPK sekarang masuk ke antrean Menunggu Bahan Baku.", function ($message) use ($order) {
@@ -86,7 +133,7 @@ class ProduksiController extends Controller
             });
         } catch (\Exception $e) {}
 
-        return redirect()->back()->with('success', 'SPK dari User Disetujui.');
+        return redirect()->back()->with('success', 'SPK disetujui dan masuk ke tahap Menunggu Bahan Baku.');
     }
 
     public function rejectSpk($id) 
@@ -100,7 +147,7 @@ class ProduksiController extends Controller
             });
         } catch (\Exception $e) {}
 
-        return redirect()->back()->with('warning', 'SPK dari User telah Ditolak.');
+        return redirect()->back()->with('warning', 'SPK telah Ditolak.');
     }
 
     public function requestDelete($id) 
@@ -124,7 +171,8 @@ class ProduksiController extends Controller
         DB::beginTransaction();
         try {
             $order = ProductionOrder::findOrFail($id);
-            $isFulfilled = $request->is_material_ready && $request->is_machine_ready;
+            $isFulfilled = ($request->has('is_material_ready') ? $request->is_material_ready : 1) && 
+                           ($request->has('is_machine_ready') ? $request->is_machine_ready : 1);
 
             if (!$isFulfilled) {
                 $order->update(['status' => 'Ditolak / Bahan Kurang']);
@@ -132,18 +180,28 @@ class ProduksiController extends Controller
                 return redirect()->back()->with('warning', 'Kelayakan gagal! Inventory/mesin tidak siap.');
             }
 
-            $inventoryItem = Item::find($order->inventory_id);
+            // Kurangi stok inventory jika item terkait ditemukan
+            if ($order->inventory_id) {
+                $inventoryItem = Item::find($order->inventory_id);
 
-            if ($inventoryItem) {
-                if ($inventoryItem->stok < $order->jumlah_produksi) {
-                    throw new \Exception("Stok barang '{$inventoryItem->name}' tidak mencukupi! Sisa stok saat ini: {$inventoryItem->stok}");
+                if ($inventoryItem) {
+                    $stokTersedia = $inventoryItem->stock ?? $inventoryItem->stok ?? 0;
+                    if ($stokTersedia < $order->jumlah_produksi) {
+                        throw new \Exception("Stok barang '{$inventoryItem->name}' tidak mencukupi! Sisa stok saat ini: {$stokTersedia}");
+                    }
+
+                    if (isset($inventoryItem->stock)) {
+                        $inventoryItem->stock -= $order->jumlah_produksi;
+                    } else {
+                        $inventoryItem->stok -= $order->jumlah_produksi;
+                    }
+                    $inventoryItem->save();
                 }
-
-                $inventoryItem->stok -= $order->jumlah_produksi;
-                $inventoryItem->save();
             }
 
-            $catatanOperator = "Operator Bertugas: " . $request->operator_name;
+            $namaMesin = $request->mesin_id ?? 'Mesin Default';
+            $namaOperator = $request->operator_name ?? 'Operator Bertugas';
+            $catatanOperator = "⚙️ [EKSEKUSI] Mesin: {$namaMesin} | Operator: {$namaOperator}";
             $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanOperator : $catatanOperator;
 
             $order->update([
@@ -152,7 +210,7 @@ class ProduksiController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->back()->with('success', 'SPK masuk ke proses produksi dan stok inventory berhasil dikurangi secara otomatis!');
+            return redirect()->back()->with('success', 'SPK masuk ke proses produksi dan stok inventory berhasil disesuaikan!');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -163,7 +221,7 @@ class ProduksiController extends Controller
     public function submitFinalQc(Request $request, $id) 
     {
         $order = ProductionOrder::findOrFail($id);
-        $catatanQC = "Final QC [Good: " . $request->good_qty . " Pcs | Reject: " . $request->reject_qty . " Pcs]. " . $request->catatan_qc;
+        $catatanQC = "✅ Final QC [Good: " . $request->good_qty . " Pcs | Reject: " . $request->reject_qty . " Pcs]. " . ($request->catatan_qc ?? '');
         $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatanQC : $catatanQC;
 
         $order->update(['status' => 'Selesai', 'keterangan' => $keteranganUpdate]);
@@ -183,7 +241,7 @@ class ProduksiController extends Controller
     public function resolveTrouble($id) 
     {
         $order = ProductionOrder::findOrFail($id);
-        $catatan = "✅ [RESOLVED] " . now()->format('d M H:i') . " - Produksi dilanjutkan kembali.";
+        $catatan = "🛠️ [RESOLVED] " . now()->format('d M H:i') . " - Produksi dilanjutkan kembali.";
         $keteranganUpdate = $order->keterangan ? $order->keterangan . "\n" . $catatan : $catatan;
 
         $order->update(['status' => 'Proses Produksi Berjalan', 'keterangan' => $keteranganUpdate]);

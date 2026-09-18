@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Capstone Project - Industrial System</title>
     
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
+    <!-- SweetAlert2 & Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -204,6 +206,7 @@
             <i class="fa-solid fa-industry"></i> Production
         </a>
 
+        <!-- Inventory (Dropdown Utama dengan Panah) -->
         <a href="#inventoryDropdown" data-bs-toggle="collapse" 
            class="d-flex justify-content-between align-items-center {{ request()->is('inventory*') ? 'active' : '' }}" 
            aria-expanded="{{ request()->is('inventory*') ? 'true' : 'false' }}">
@@ -229,6 +232,7 @@
             </a>
         </div>
 
+        <!-- PENGAMAN ERROR RESOURCES -->
         @php
             $pendingApprovalCount = 0;
             try {
@@ -240,6 +244,7 @@
             }
         @endphp
 
+        <!-- Link Route Resources -->
         <a href="{{ Route::has('man-power.index') ? route('man-power.index') : '#' }}" class="{{ request()->routeIs('man-power.*') || request()->is('machine*') ? 'active' : '' }}">
             <div class="d-flex justify-content-between align-items-center w-100">
                 <div><i class="fa-solid fa-users-gear"></i> Resources</div>
@@ -249,18 +254,19 @@
             </div>
         </a>
         
-        <a href="/purchase" class="{{ Request::is('purchase*') || Request::is('delivery*') ? 'active' : '' }}">
-            <i class="fa-solid fa-cart-shopping"></i> Order Here !
+        <a href="{{ Route::has('purchase.hub') ? route('purchase.hub') : '/purchase-delivery' }}" class="{{ Request::is('purchase*') || Request::is('delivery*') || Request::is('purchase-delivery*') ? 'active' : '' }}">
+            <i class="fa-solid fa-cart-shopping"></i> Purchase & Delivery
         </a>
         
-        <a href="/rnd" class="{{ Request::is('rnd*') ? 'active' : '' }}">
+        <a href="{{ Route::has('rnd.index') ? route('rnd.index') : '/rnd' }}" class="{{ Request::is('rnd*') ? 'active' : '' }}">
             <i class="fa-solid fa-flask"></i> RnD
         </a>
 
-        <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+        <a href="{{ Route::has('reports.index') ? route('reports.index') : '#' }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
             <i class="fa-solid fa-file-lines"></i> Laporan Operasional
         </a>
 
+        <!-- Widget Profil Pengguna (Ditempel di bawah karena display:flex dan mt-auto) -->
         <div class="mt-auto px-3 pb-3 pt-4">
             <div class="p-3 rounded-4 bg-white shadow-sm border border-secondary border-opacity-25">
                 <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
@@ -293,6 +299,7 @@
         </div>
     </div>
     
+    <!-- AREA KONTEN UTAMA HALAMAN -->
     <div class="main-content">
         @if(View::exists('components.notification'))
             <x-notification />
@@ -301,8 +308,9 @@
         @yield('content')
     </div>
 
+    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     @stack('scripts')
 </body>
 </html>

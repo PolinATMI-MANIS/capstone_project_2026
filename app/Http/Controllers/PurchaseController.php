@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Purchase;
-use Carbon\Carbon;
 use App\Models\DeliveryOrder;
+use App\Models\ProductionOrder;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseController extends Controller
 {
@@ -17,26 +19,32 @@ class PurchaseController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Generate No PO otomatis
+        $request->validate([
+            'nama_customer'       => 'required',
+            'permintaan_material' => 'required',
+            'nama_barang'         => 'required',
+            'waktu_tgl_deadline'  => 'required|date',
+            'kuantitas'           => 'required|numeric',
+            'harga_satuan'        => 'required|numeric',
+        ]);
+
         $noPo = 'PO-' . date('Ym') . '-' . sprintf('%03d', Purchase::count() + 1);
 
-        // 2. Simpan data Purchase
-        $purchase = Purchase::create([
+        Purchase::create([
             'no_po'               => $noPo,
             'nama_customer'       => $request->nama_customer,
-            'kode_barang'         => $request->kode_barang,
+            'kode_barang'         => '-', 
             'nama_barang'         => $request->nama_barang,
             'kuantitas'           => $request->kuantitas,
             'harga_satuan'        => $request->harga_satuan,
             'permintaan_material' => $request->permintaan_material,
-            'tanggal_pemesanan'   => $request->tanggal_pemesanan,
+            'tanggal_pemesanan'   => now()->format('Y-m-d'), 
             'waktu_tgl_deadline'  => $request->waktu_tgl_deadline,
-            'estimasi_pengerjaan' => $request->estimasi_pengerjaan,
-            'status'              => $request->status,
+            'estimasi_pengerjaan' => '-', 
+            'status'              => 'Waiting Approval',
             'keterangan'          => $request->keterangan,
         ]);
 
-        // 3. Generate Nomor DO otomatis
         $currentMonth = Carbon::now()->format('Ym');
         $lastDo = DeliveryOrder::where('no_do', 'LIKE', 'DO-' . $currentMonth . '-%')
                                ->orderBy('no_do', 'desc')
@@ -45,7 +53,6 @@ class PurchaseController extends Controller
         $newDoNumber = $lastDo ? ((int) substr($lastDo->no_do, -3)) + 1 : 1;
         $noDo = 'DO-' . $currentMonth . '-' . sprintf('%03d', $newDoNumber);
 
-        // 4. Simpan ke database Delivery Order
         DeliveryOrder::create([
             'no_do'         => $noDo,
             'ref_po'        => $noPo, 
@@ -55,13 +62,31 @@ class PurchaseController extends Controller
             'keterangan'    => 'Dibuat otomatis dari sistem PO',
         ]);
 
-        return redirect('/purchase')->with('success', 'Purchase Order berhasil ditambahkan!');
+        // ==============================================================
+        // 6. AUTO-GENERATE SPK KE TABEL PRODUKSI (MENGGUNAKAN DB INSERT)
+        // ==============================================================
+        try {
+            DB::table('production_orders')->insert([
+                'no_po'           => $noPo, 
+                'produk'          => $request->nama_barang, 
+                'jumlah_produksi' => $request->kuantitas, 
+                'target_selesai'  => Carbon::parse($request->waktu_tgl_deadline)->format('Y-m-d'), 
+                'status'          => 'Menunggu Approval Admin', 
+                'keterangan'      => 'Material: ' . $request->permintaan_material . ' | Di-generate dari PO: ' . $noPo,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+        } catch (\Exception $e) {
+            dd("GAGAL MASUK PRODUKSI: " . $e->getMessage());
+        }
+        // ==============================================================
+
+        return redirect('/purchase')->with('success', 'Purchase Order berhasil ditambahkan dan dikirim ke Produksi!');
     }
 
     public function show($id)
     {
         $purchase = Purchase::findOrFail($id);
-
         return view('purchase-detail', compact('purchase'));
     }
 
@@ -69,7 +94,7 @@ class PurchaseController extends Controller
     {
         $totalPo   = Purchase::count();
         $totalDo   = DeliveryOrder::count();
-        $waitingPo = Purchase::where('status', 'Waiting')->count();
+        $waitingPo = Purchase::where('status', 'Waiting Approval')->count();
 
         $totalNilaiPo = Purchase::all()->sum(function ($po) {
             return ($po->kuantitas ?? 0) * ($po->harga_satuan ?? $po->harga ?? 0);
@@ -91,12 +116,12 @@ class PurchaseController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'nama_customer'      => 'required',
-            'nama_barang'        => 'required',
-            'tanggal_pemesanan'  => 'required',
-            'waktu_tgl_deadline' => 'required',
-            'kuantitas'          => 'required|numeric',
-            'harga_satuan'       => 'required|numeric',
+            'nama_customer'       => 'required',
+            'nama_barang'         => 'required',
+            'permintaan_material' => 'required',
+            'waktu_tgl_deadline'  => 'required|date',
+            'kuantitas'           => 'required|numeric',
+            'harga_satuan'        => 'required|numeric',
         ]);
 
         $purchase = Purchase::findOrFail($id);
@@ -104,14 +129,21 @@ class PurchaseController extends Controller
         $purchase->update([
             'nama_customer'       => $request->nama_customer,
             'nama_barang'         => $request->nama_barang,
-            'kode_barang'         => $request->kode_barang,
             'permintaan_material' => $request->permintaan_material,
-            'tanggal_pemesanan'   => $request->tanggal_pemesanan,
             'waktu_tgl_deadline'  => $request->waktu_tgl_deadline,
             'kuantitas'           => $request->kuantitas,
             'harga_satuan'        => $request->harga_satuan,
-            'estimasi_pengerjaan' => $request->estimasi_pengerjaan,
         ]);
+
+        $prod = ProductionOrder::where('no_po', $purchase->no_po)->first();
+        if($prod && in_array($prod->status, ['Menunggu Approval Admin', 'Menunggu Bahan Baku'])) {
+            $prod->update([
+                'produk'          => $request->nama_barang,
+                'jumlah_produksi' => $request->kuantitas,
+                'target_selesai'  => Carbon::parse($request->waktu_tgl_deadline)->format('Y-m-d'),
+                'keterangan'      => 'Material: ' . $request->permintaan_material . ' | Diupdate dari PO',
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Data Purchase Order berhasil diperbarui!');
     }
@@ -119,16 +151,13 @@ class PurchaseController extends Controller
     public function approval(Request $request, $id)
     {
         $purchase = Purchase::findOrFail($id);
-
         $purchase->update([
             'status'           => $request->status,
             'catatan_approval' => $request->catatan_approval,
         ]);
-
         return redirect()->back()->with('success', 'Status approval berhasil diperbarui!');
     }
 
-    // Fungsi Pengajuan Hapus dari Admin ke Superadmin
     public function requestDelete(Request $request, $id)
     {
         $request->validate([
@@ -137,7 +166,6 @@ class PurchaseController extends Controller
 
         $purchase = Purchase::findOrFail($id);
 
-        // Mengisi catatan pengajuan jika ada kolom penampungnya
         if (\Schema::hasColumn('purchases', 'delete_reason')) {
             $purchase->update(['delete_reason' => $request->reason]);
         }
@@ -150,9 +178,10 @@ class PurchaseController extends Controller
         $purchase = Purchase::findOrFail($id);
 
         DeliveryOrder::where('ref_po', $purchase->no_po)->delete();
-
+        ProductionOrder::where('no_po', $purchase->no_po)->delete();
+        
         $purchase->delete();
 
-        return redirect()->back()->with('success', 'Data Purchase Order dan Delivery Order terkait berhasil dihapus!');
+        return redirect()->back()->with('success', 'Data Purchase Order, Delivery Order, dan Produksi terkait dihapus permanen!');
     }
 }

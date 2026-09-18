@@ -63,7 +63,12 @@
             </div>
 
             <div class="text-center text-sm text-gray-400">
-                Butuh bantuan? <a href="#" class="text-teal-400 hover:text-teal-300 transition font-medium">Hubungi Admin</a>
+                Butuh bantuan?<a href="https://wa.me/6282210385033?text=Halo%20Admin,%20saya%20butuh%20bantuan%20karena%20tidak%20bisa%20login%20ke%20sistem." 
+                target="_blank" 
+                class="text-info text-decoration-none fw-bold" 
+                style="font-size: 0.85rem;">
+                    Hubungi Admin
+                </a>
             </div>
         </form>
     </div>

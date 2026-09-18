@@ -1,4 +1,5 @@
 @extends('layouts.app')
+
 <style>
 /* 1. SEMBUNYIKAN ELEMEN CETAK SAAT DI LAYAR BIASA */
 .print-only { 
@@ -12,17 +13,9 @@
         margin: 10mm;
     }
 
-    /* Sembunyikan elemen bawaan web */
-    body * { 
-        visibility: hidden !important; 
-    }
-    
-    /* Tampilkan hanya area printable */
-    #printable-area, #printable-area * { 
-        visibility: visible !important; 
-    }
+    body * { visibility: hidden !important; }
+    #printable-area, #printable-area * { visibility: visible !important; }
 
-    /* Tarik tabel ke posisi paling atas kertas cetak */
     #printable-area {
         position: absolute !important;
         left: 0 !important;
@@ -35,15 +28,9 @@
         border: none !important;
     }
 
-    .print-only { 
-        display: block !important; 
-    }
+    .print-only { display: block !important; }
+    .no-print, .no-print * { display: none !important; }
 
-    .no-print, .no-print * { 
-        display: none !important; 
-    }
-
-    /* Styling Tabel Cetak */
     #printable-area table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -69,7 +56,6 @@
         vertical-align: middle !important;
     }
 
-    /* Sembunyikan Kolom Actions saat cetak */
     #printable-area th:last-child, 
     #printable-area td:last-child {
         display: none !important;
@@ -83,8 +69,13 @@
 </style>
 
 @section('content')
+
+@php
+    $inventoryItems = class_exists('\App\Models\Item') ? \App\Models\Item::all() : [];
+@endphp
+
 <div class="container-fluid px-4 py-3">
-    <!-- 1. HEADER UTAMA & WIDGET USER -->
+    <!-- HEADER UTAMA & WIDGET USER -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
         <div>
             <span class="badge bg-warning text-dark fw-bold mb-1 px-2 py-1" style="font-size: 11px; letter-spacing: 0.5px;">MODULE</span>
@@ -112,7 +103,7 @@
         </div>
     </div>
 
-    <!-- 2. TAB NAVIGASI TENGAH (SWITCHER) -->
+    <!-- TAB NAVIGASI TENGAH -->
     <div class="d-flex justify-content-center align-items-center mb-4">
         <div class="bg-white p-1 rounded-pill shadow-sm d-inline-flex border">
             <a href="/purchase" class="btn btn-danger text-white rounded-pill px-4 fw-semibold shadow-sm" style="background-color: #ff5722; border: none;">
@@ -138,10 +129,9 @@
         </div>
     @endif
 
-    <!-- 3. DIRECTORY CARD & TABLE -->
+    <!-- DIRECTORY CARD & TABLE -->
     <div id="printable-area" class="card border-0 shadow-sm rounded-3 p-4 mb-4">
         
-        <!-- Header Section (Judul Kiri, Tombol Kanan) -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">Purchase Order Directory</h4>
@@ -157,7 +147,6 @@
             </div>
         </div>
 
-        <!-- TABEL DATA PURCHASE -->
         <div class="table-responsive">
             <table class="table table-hover align-middle m-0" style="font-size: 13px;">
                 <thead class="bg-light text-secondary text-uppercase fw-bold">
@@ -167,7 +156,7 @@
                         <th>Barang & Kode</th>
                         <th>Material</th>
                         <th>Tgl PO</th>
-                        <th>Deadline & Est.</th>
+                        <th>Deadline</th>
                         <th>Qty x Harga</th>
                         <th>Total Nilai</th>
                         <th>Status</th>
@@ -190,8 +179,7 @@
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal_pemesanan)->format('d/m/Y') }}</td>
                                 <td>
                                     <div class="lh-sm">
-                                        <div><i class="fa-regular fa-calendar me-1 text-muted"></i>{{ \Carbon\Carbon::parse($item->waktu_tgl_deadline)->format('d/m/Y H:i') }}</div>
-                                        <small class="text-muted">Est: {{ $item->estimasi_pengerjaan ?? '-' }}</small>
+                                        <div><i class="fa-regular fa-calendar me-1 text-muted"></i>{{ \Carbon\Carbon::parse($item->waktu_tgl_deadline)->format('d/m/Y') }}</div>
                                     </div>
                                 </td>
                                 <td>{{ $item->kuantitas }} unit @ <br>Rp {{ number_format($item->harga_satuan ?? 0, 0, ',', '.') }}</td>
@@ -199,8 +187,8 @@
                                     Rp {{ number_format(($item->kuantitas ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}
                                 </td>
                                 <td>
-                                    <span class="badge bg-{{ $item->status == 'Approved' || $item->status == 'Completed' ? 'success' : ($item->status == 'Waiting' || $item->status == 'On Progress' ? 'warning' : ($item->status == 'Rejected' || $item->status == 'Cancelled' ? 'danger' : 'secondary')) }} px-2 py-1">
-                                        {{ $item->status }}
+                                    <span class="badge bg-{{ $item->status == 'Approved' || $item->status == 'Completed' ? 'success' : ($item->status == 'Waiting Approval' || $item->status == 'Waiting' || $item->status == 'On Progress' ? 'warning' : 'secondary') }} px-2 py-1">
+                                        Menunggu Produksi
                                     </span>
                                 </td>
                                 <td class="text-center pe-3">
@@ -216,25 +204,7 @@
                                             <i class="fa-solid fa-pen-to-square me-1"></i> Edit
                                         </button>
 
-                                        <!-- Approval Button (Bisa diakses Admin & Superadmin) -->
-                                        @if(in_array(auth()->user()?->role, ['admin', 'superadmin']))
-                                            @if($item->status == 'Approved')
-                                                <button type="button" class="btn btn-sm btn-outline-success fw-semibold" style="font-size: 0.8rem;" disabled>
-                                                    <i class="fa-solid fa-check-double me-1"></i> Approved
-                                                </button>
-                                            @elseif($item->status == 'Rejected' || $item->status == 'Cancelled')
-                                                <button type="button" class="btn btn-sm btn-outline-danger fw-semibold" style="font-size: 0.8rem;" disabled>
-                                                    <i class="fa-solid fa-ban me-1"></i> Rejected
-                                                </button>
-                                            @else
-                                                <button type="button" class="btn btn-sm btn-success text-white fw-semibold" style="font-size: 0.8rem;"
-                                                        data-bs-toggle="modal" data-bs-target="#approvalModal{{ $item->id }}">
-                                                    <i class="fa-solid fa-circle-check me-1"></i> Approval
-                                                </button>
-                                            @endif
-                                        @endif
-
-                                        <!-- Delete Button (Tersedia untuk Admin & Superadmin) -->
+                                        <!-- Delete Button -->
                                         @if(in_array(auth()->user()?->role, ['admin', 'superadmin']))
                                             <button type="button" class="btn btn-sm btn-outline-danger" style="font-size: 0.8rem;" 
                                                     data-bs-toggle="modal" data-bs-target="#deleteModal{{ $item->id }}" title="Hapus Data">
@@ -247,116 +217,76 @@
                                     <div class="modal fade text-start" id="editPoModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                         <div class="modal-dialog modal-lg modal-dialog-centered">
                                             <div class="modal-content border-0 shadow">
-                                                <div class="modal-header bg-warning text-white">
+                                                <div class="modal-header bg-warning text-dark">
                                                     <h5 class="modal-title fw-bold">
                                                         <i class="fa-solid fa-pen-to-square me-2"></i>Edit Purchase Order — {{ $item->no_po }}
                                                     </h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <form action="/purchase/{{ $item->id }}" method="POST">
                                                     @csrf
                                                     @method('PUT')
-                                                    <div class="modal-body py-3">
+                                                    <input type="hidden" name="tanggal_pemesanan" value="{{ $item->tanggal_pemesanan }}">
+                                                    <input type="hidden" name="kode_barang" value="{{ $item->kode_barang }}">
+                                                    <input type="hidden" name="estimasi_pengerjaan" value="{{ $item->estimasi_pengerjaan }}">
+                                                    
+                                                    <div class="modal-body py-4">
                                                         <div class="row g-3">
                                                             <div class="col-md-6">
                                                                 <label class="form-label fw-semibold small text-muted">Nama Customer</label>
-                                                                <input type="text" class="form-control" name="nama_customer" value="{{ $item->nama_customer }}" required>
+                                                                <input type="text" class="form-control bg-light" name="nama_customer" value="{{ $item->nama_customer }}" required>
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-semibold small text-muted">Nama Barang</label>
-                                                                <input type="text" class="form-control" name="nama_barang" value="{{ $item->nama_barang }}" required>
+                                                                <label class="form-label fw-semibold small text-primary">Ubah Material (Inventory)</label>
+                                                                <select class="form-select border-primary bg-light" name="permintaan_material" required>
+                                                                    <option value="{{ $item->permintaan_material }}">{{ $item->permintaan_material }} (Pilihan Saat Ini)</option>
+                                                                    @foreach($inventoryItems as $inv)
+                                                                        @php
+                                                                            $nama = $inv->name ?? $inv->nama_barang ?? $inv->nama ?? '-';
+                                                                            $stok = $inv->stock ?? $inv->stok ?? $inv->stok_saat_ini ?? 0;
+                                                                        @endphp
+                                                                        <option value="{{ $nama }}">{{ $nama }} (Stok: {{ $stok }})</option>
+                                                                    @endforeach
+                                                                </select>
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-semibold small text-muted">Kode Barang</label>
-                                                                <input type="text" class="form-control" name="kode_barang" value="{{ $item->kode_barang }}">
+                                                                <label class="form-label fw-semibold small text-muted">Produk Jadi</label>
+                                                                <input type="text" class="form-control bg-light" name="nama_barang" value="{{ $item->nama_barang }}" required>
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-semibold small text-muted">Permintaan Material</label>
-                                                                <input type="text" class="form-control" name="permintaan_material" value="{{ $item->permintaan_material }}">
+                                                                <label class="form-label fw-semibold small text-danger">Target Deadline Baru</label>
+                                                                <input type="date" class="form-control border-danger bg-light" name="waktu_tgl_deadline" value="{{ \Carbon\Carbon::parse($item->waktu_tgl_deadline)->format('Y-m-d') }}" required>
                                                             </div>
                                                             <div class="col-md-6">
-                                                                <label class="form-label fw-semibold small text-muted">Tanggal Pemesanan</label>
-                                                                <input type="date" class="form-control" name="tanggal_pemesanan" value="{{ \Carbon\Carbon::parse($item->tanggal_pemesanan)->format('Y-m-d') }}" required>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <label class="form-label fw-semibold small text-muted">Deadline</label>
-                                                                <input type="datetime-local" class="form-control" name="waktu_tgl_deadline" value="{{ \Carbon\Carbon::parse($item->waktu_tgl_deadline)->format('Y-m-d\TH:i') }}" required>
-                                                            </div>
-                                                            <div class="col-md-4">
                                                                 <label class="form-label fw-semibold small text-muted">Kuantitas</label>
-                                                                <input type="number" class="form-control" name="kuantitas" value="{{ $item->kuantitas }}" required>
+                                                                <input type="number" class="form-control bg-light" name="kuantitas" value="{{ $item->kuantitas }}" required>
                                                             </div>
-                                                            <div class="col-md-4">
+                                                            <div class="col-md-6">
                                                                 <label class="form-label fw-semibold small text-muted">Harga Satuan (Rp)</label>
-                                                                <input type="number" class="form-control" name="harga_satuan" value="{{ $item->harga_satuan }}" required>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <label class="form-label fw-semibold small text-muted">Estimasi Pengerjaan</label>
-                                                                <input type="text" class="form-control" name="estimasi_pengerjaan" value="{{ $item->estimasi_pengerjaan }}" placeholder="Contoh: 50 jam">
+                                                                <input type="number" class="form-control bg-light" name="harga_satuan" value="{{ $item->harga_satuan }}" required>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="modal-footer border-top-0">
+                                                    <div class="modal-footer border-top-0 pt-0">
                                                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="submit" class="btn btn-warning text-white fw-bold">Simpan Perubahan</button>
+                                                        <button type="submit" class="btn btn-warning text-dark shadow-sm fw-bold">Simpan Perubahan</button>
                                                     </div>
                                                 </form>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- MODAL APPROVAL ADMIN FOR USER DATA -->
-                                    <div class="modal fade text-start" id="approvalModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content border-0 shadow">
-                                                <div class="modal-header bg-success text-white">
-                                                    <h5 class="modal-title fw-bold">
-                                                        <i class="fa-solid fa-circle-check me-2"></i>Approval Purchase Order
-                                                    </h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <form action="/purchase/{{ $item->id }}/approval" method="POST">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <div class="modal-body py-4 text-center">
-                                                        <div class="mb-3">
-                                                            <span class="badge bg-light text-dark border fs-6 px-3 py-2">{{ $item->no_po }}</span>
-                                                        </div>
-                                                        <p class="text-muted small mb-3">Pilih tindakan approval untuk dokumen Purchase Order dari customer <strong>{{ $item->nama_customer }}</strong>.</p>
-                                                        
-                                                        <div class="mb-3 text-start">
-                                                            <label class="form-label fw-semibold small text-muted">Keputusan Status</label>
-                                                            <select class="form-select" name="status" required>
-                                                                <option value="Approved" {{ $item->status == 'Approved' ? 'selected' : '' }}>Approve (Disetujui)</option>
-                                                                <option value="Rejected" {{ $item->status == 'Rejected' ? 'selected' : '' }}>Reject (Ditolak)</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="text-start">
-                                                            <label class="form-label fw-semibold small text-muted">Catatan Approval (Opsional)</label>
-                                                            <textarea class="form-control" name="catatan_approval" rows="2" placeholder="Masukkan alasan atau catatan pendukung..."></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer border-top-0 justify-content-end">
-                                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="submit" class="btn btn-success fw-bold px-4">Proses Approval</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- MODAL DELETE (ADAPTIF: ADMIN = REQUEST SUPERADMIN, SUPERADMIN = DIRECT DELETE) -->
+                                    <!-- MODAL DELETE -->
                                     @if(in_array(auth()->user()?->role, ['admin', 'superadmin']))
                                         <div class="modal fade text-start" id="deleteModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog modal-dialog-centered">
                                                 <div class="modal-content border-0 shadow">
                                                     @if(auth()->user()?->role == 'admin')
-                                                        <!-- Admin kirim permohonan ke Superadmin -->
                                                         <form action="/purchase/{{ $item->id }}/request-delete" method="POST">
                                                             @csrf
                                                             <div class="modal-header bg-danger text-white">
                                                                 <h5 class="modal-title fw-bold fs-6">
-                                                                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Pengajuan Hapus Purchase Order
+                                                                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Pengajuan Hapus PO
                                                                 </h5>
                                                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                             </div>
@@ -372,7 +302,6 @@
                                                             </div>
                                                         </form>
                                                     @else
-                                                        <!-- Superadmin langsung menghapus data -->
                                                         <div class="modal-body text-center py-4">
                                                             <i class="fa-solid fa-triangle-exclamation text-danger fa-3x mb-3"></i>
                                                             <h6 class="fw-bold text-dark">Hapus Purchase Order?</h6>
@@ -410,7 +339,7 @@
     </div>
 </div>
 
-<!-- Modal Pop-up Form Add Purchase Order -->
+<!-- MODAL ADD PURCHASE ORDER -->
 <div class="modal fade" id="addPurchaseModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -424,61 +353,50 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold text-muted">Nama Customer</label>
-                            <input type="text" name="nama_customer" class="form-control" placeholder="Masukkan nama customer" required>
+                            <input type="text" name="nama_customer" class="form-control bg-light" placeholder="Masukkan nama customer" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Permintaan Material</label>
-                            <input type="text" name="permintaan_material" class="form-control" placeholder="Contoh: Plat Besi 5mm" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Kode Barang</label>
-                            <input type="text" name="kode_barang" class="form-control" placeholder="Contoh: BRG-001" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Tanggal Pemesanan</label>
-                            <input type="date" name="tanggal_pemesanan" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Nama Barang</label>
-                            <input type="text" name="nama_barang" class="form-control" placeholder="Contoh: Gear Custom Type A" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-muted">Waktu & Tanggal Deadline</label>
-                            <input type="datetime-local" name="waktu_tgl_deadline" class="form-control" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-muted">Kuantitas</label>
-                            <input type="number" name="kuantitas" class="form-control" value="0" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-muted">Harga Satuan (Rp)</label>
-                            <input type="number" name="harga_satuan" class="form-control" value="0" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-muted">Estimasi Pengerjaan</label>
-                            <input type="text" name="estimasi_pengerjaan" class="form-control" placeholder="Contoh: 14 Hari" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-semibold text-muted">Status Order</label>
-                            <select name="status" class="form-select" required>
-                                <option value="Waiting" selected>Waiting</option>
-                                <option value="On Progress">On Progress</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Cancelled">Cancelled</option>
+                            <label class="form-label small fw-semibold text-primary">Permintaan Material <small>(Dari Inventory)</small></label>
+                            <select class="form-select border-primary bg-light" name="permintaan_material" required>
+                                <option value="">-- Pilih Material Baku --</option>
+                                @foreach($inventoryItems as $item)
+                                    @php
+                                        $nama = $item->name ?? $item->nama_barang ?? $item->nama ?? '-';
+                                        $stok = $item->stock ?? $item->stok ?? $item->stok_saat_ini ?? 0;
+                                    @endphp
+                                    <option value="{{ $nama }}">{{ $nama }} (Stok Tersedia: {{ $stok }})</option>
+                                @endforeach
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Produk Jadi Yang Dipesan</label>
+                            <input type="text" name="nama_barang" class="form-control bg-light" placeholder="Contoh: Gear Custom Type A" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-danger">Target Deadline</label>
+                            <input type="date" name="waktu_tgl_deadline" class="form-control border-danger bg-light" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Kuantitas Order (Pcs)</label>
+                            <input type="number" name="kuantitas" class="form-control bg-light" placeholder="0" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted">Harga Satuan (Rp)</label>
+                            <input type="number" name="harga_satuan" class="form-control bg-light" placeholder="0" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-semibold text-muted">Keterangan Tambahan</label>
-                            <textarea name="keterangan" class="form-control" rows="3" placeholder="Tuliskan catatan khusus (opsional)"></textarea>
+                            <textarea name="keterangan" class="form-control bg-light" rows="2" placeholder="Tuliskan catatan khusus (opsional)"></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top-0">
-                    <button type="button" class="btn text-muted" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning text-white fw-bold px-4">Save PO</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold px-4 shadow-sm">Save PO</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 @endsection
